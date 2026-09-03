@@ -6,7 +6,7 @@ export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   manifest: {
     name: "Readify",
-    description: "Customize text sizes on any website",
+    description: "Customize your reading experience on any website",
     permissions: ["storage", "tabs"],
   },
   vite: () => ({
