@@ -60,45 +60,142 @@ export const FONT_SIZE_FIELDS = [
 export type FontSizeCategory = (typeof FONT_SIZE_FIELDS)[number]["key"]
 export type ExactFontSizeOverrides = Partial<Record<FontSizeCategory, number>>
 
-export const FONT_FAMILY_OPTIONS = [
+export const WEBSITE_DEFAULT_FONT_FAMILY_OPTION = {
+  value: "site-default",
+  label: "Website Default",
+  css: null,
+} as const
+
+type FontFamilyOption = {
+  readonly value: string
+  readonly label: string
+  readonly css: string | null
+}
+
+export const FONT_FAMILY_GROUPS = [
   {
-    value: "site-default",
-    label: "Site default",
-    css: null,
+    label: "Recommended",
+    options: [
+      {
+        value: "atkinson-hyperlegible-next",
+        label: "Atkinson Hyperlegible Next",
+        css: '"Atkinson Hyperlegible Next Variable", sans-serif',
+      },
+      {
+        value: "lexend",
+        label: "Lexend",
+        css: '"Lexend Variable", sans-serif',
+      },
+      {
+        value: "verdana",
+        label: "Verdana",
+        css: "Verdana, Geneva, sans-serif",
+      },
+    ],
   },
   {
-    value: "system-ui",
-    label: "System UI",
-    css: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    label: "Sans Serif",
+    options: [
+      {
+        value: "system-ui",
+        label: "System UI",
+        css: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      },
+      {
+        value: "arial",
+        label: "Arial",
+        css: "Arial, Helvetica, sans-serif",
+      },
+      {
+        value: "tahoma",
+        label: "Tahoma",
+        css: "Tahoma, sans-serif",
+      },
+      {
+        value: "trebuchet",
+        label: "Trebuchet MS",
+        css: '"Trebuchet MS", Arial, sans-serif',
+      },
+      {
+        value: "geist",
+        label: "Geist",
+        css: '"Geist Variable", sans-serif',
+      },
+    ],
   },
   {
-    value: "arial",
-    label: "Arial",
-    css: "Arial, Helvetica, sans-serif",
+    label: "Serif",
+    options: [
+      {
+        value: "georgia",
+        label: "Georgia",
+        css: 'Georgia, "Times New Roman", serif',
+      },
+      {
+        value: "charter",
+        label: "Charter",
+        css: 'Charter, "Bitstream Charter", "Sitka Text", Cambria, serif',
+      },
+      {
+        value: "times-new-roman",
+        label: "Times New Roman",
+        css: '"Times New Roman", Times, serif',
+      },
+    ],
   },
   {
-    value: "georgia",
-    label: "Georgia",
-    css: 'Georgia, "Times New Roman", serif',
+    label: "Monospace",
+    options: [
+      {
+        value: "jetbrains-mono",
+        label: "JetBrains Mono",
+        css: '"JetBrains Mono Variable", monospace',
+      },
+      {
+        value: "ibm-plex-mono",
+        label: "IBM Plex Mono",
+        css: '"IBM Plex Mono", monospace',
+      },
+      {
+        value: "source-code-pro",
+        label: "Source Code Pro",
+        css: '"Source Code Pro Variable", monospace',
+      },
+    ],
   },
   {
-    value: "verdana",
-    label: "Verdana",
-    css: "Verdana, Geneva, sans-serif",
-  },
-  {
-    value: "trebuchet",
-    label: "Trebuchet MS",
-    css: '"Trebuchet MS", Arial, sans-serif',
-  },
-  {
-    value: "courier",
-    label: "Courier New",
-    css: '"Courier New", Courier, monospace',
+    label: "Distinctive",
+    options: [
+      {
+        value: "open-dyslexic",
+        label: "OpenDyslexic",
+        css: '"OpenDyslexic", sans-serif',
+      },
+      {
+        value: "comic-sans-ms",
+        label: "Comic Sans MS",
+        css: '"Comic Sans MS", "Comic Sans", cursive',
+      },
+    ],
   },
 ] as const
 
-export type FontFamilyKey = (typeof FONT_FAMILY_OPTIONS)[number]["value"]
+const ALL_FONT_FAMILY_GROUP_OPTIONS = FONT_FAMILY_GROUPS.reduce<FontFamilyOption[]>(
+  (options, group) => {
+    options.push(...(group.options as readonly FontFamilyOption[]))
+    return options
+  },
+  [],
+)
+
+export const FONT_FAMILY_OPTIONS: readonly FontFamilyOption[] = [
+  WEBSITE_DEFAULT_FONT_FAMILY_OPTION,
+  ...ALL_FONT_FAMILY_GROUP_OPTIONS,
+]
+
+export type FontFamilyKey =
+  | typeof WEBSITE_DEFAULT_FONT_FAMILY_OPTION["value"]
+  | (typeof FONT_FAMILY_GROUPS)[number]["options"][number]["value"]
 
 export type TextSizeSettings = {
   scale: number
@@ -222,6 +319,10 @@ export function normalizeTextSizeSettings(value: unknown): TextSizeSettings {
 }
 
 function normalizeFontFamily(value: unknown): FontFamilyKey {
+  if (value === "helvetica") {
+    return "geist"
+  }
+
   if (
     FONT_FAMILY_OPTIONS.some(
       (option) => option.value === value,

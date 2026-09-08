@@ -1,5 +1,7 @@
 import {
     FONT_FAMILY_OPTIONS,
+    FONT_FAMILY_GROUPS,
+    WEBSITE_DEFAULT_FONT_FAMILY_OPTION,
     LETTER_SPACING_STEP,
     LINE_HEIGHT_STEP,
     MAX_LETTER_SPACING,
@@ -14,6 +16,8 @@ import {Card, CardContent} from "@/components/ui/card"
 import {
     Select,
     SelectContent,
+    SelectGroup,
+    SelectLabel,
     SelectItem,
     SelectTrigger,
     SelectValue,
@@ -42,6 +46,9 @@ export function TypographySettings(
         onLineHeightToggle,
         onLineHeightChange,
     }: TypographySettingsProps) {
+
+    const fontFamilyItems = FONT_FAMILY_OPTIONS
+
     return (
         <TabsContent value="typography" className="space-y-4">
             <Card>
@@ -50,23 +57,45 @@ export function TypographySettings(
                         <Label htmlFor="font-family" className="text-xs">
                             Font family
                         </Label>
+
                         <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
-                            Choose a reliable font available on most devices.
+                            Bundled reading fonts work everywhere; system fonts depend on the device.
                         </p>
+
                         <Select
+                            items={fontFamilyItems}
                             value={typography.fontFamily}
+                            disabled={disabled}
                             onValueChange={(value) =>
                                 onFontFamilyChange(value as FontFamilyKey)
                             }
                         >
-                            <SelectTrigger id="font-family" className="mt-2">
+                            <SelectTrigger id="font-family" className="mt-2 w-full">
                                 <SelectValue placeholder="Choose a font"/>
                             </SelectTrigger>
-                            <SelectContent>
-                                {FONT_FAMILY_OPTIONS.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>
-                                        {option.label}
-                                    </SelectItem>
+
+                            <SelectContent alignItemWithTrigger={false}>
+                                <SelectGroup>
+                                <SelectItem
+                                    value={WEBSITE_DEFAULT_FONT_FAMILY_OPTION.value}
+                                >
+                                    {WEBSITE_DEFAULT_FONT_FAMILY_OPTION.label}
+                                </SelectItem>
+                                </SelectGroup>
+
+                                {FONT_FAMILY_GROUPS.map((group) => (
+                                    <SelectGroup key={group.label}>
+                                        <SelectLabel>{group.label}</SelectLabel>
+
+                                        {group.options.map((option) => (
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -100,6 +129,7 @@ export function TypographySettings(
                         onToggle={onLetterSpacingToggle}
                         onChange={onLetterSpacingChange}
                     />
+
                     <SpacingSetting
                         id="line-height"
                         label="Line spacing"

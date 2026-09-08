@@ -1,3 +1,5 @@
+import "@/assets/reading-fonts.css"
+
 import {
   APPLY_SITE_SETTINGS_MESSAGE,
   LEGACY_FONT_SIZE_STORAGE_KEY,
