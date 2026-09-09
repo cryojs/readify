@@ -15,24 +15,27 @@ function App() {
     const controlsDisabled = state.isLoading || state.isApplying
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
+        <div className="flex min-h-screen flex-col bg-background text-foreground">
             <PopupHeader/>
 
-            <main className="space-y-4 px-4 pt-4">
+            <main className="flex flex-1 flex-col space-y-4 px-4 pt-4">
                 <SiteStatusCard
                     hostname={state.hostname}
                     isSupported={state.isSupported}
                 />
 
                 <form
-                    className="space-y-3"
+                    className="flex flex-1 flex-col space-y-3"
                     onSubmit={(event) => {
                         event.preventDefault()
                         void actions.applySettings()
                     }}
                 >
                     <Tabs defaultValue="text-size">
-                        <TabsList aria-label="Typography settings">
+                        <TabsList
+                            aria-label="Typography settings"
+                            className="mb-2 w-full"
+                        >
                             <TabsTrigger value="text-size">Text size</TabsTrigger>
                             <TabsTrigger value="typography">Typography</TabsTrigger>
                         </TabsList>

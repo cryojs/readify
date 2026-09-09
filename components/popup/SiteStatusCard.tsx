@@ -10,12 +10,14 @@ type SiteStatusCardProps = {
 
 export function SiteStatusCard({hostname, isSupported}: SiteStatusCardProps) {
     return (
-        <Card className="bg-muted">
-            <CardContent className="flex items-center gap-3 px-3 py-3">
-                <Card
-                    className="bg-background text-muted-foreground flex size-8 items-center justify-center">
+        <Card className="bg-muted py-0">
+            <CardContent className="flex items-center gap-3 p-2">
+                <div
+                    className="bg-background text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md"
+                    aria-hidden="true"
+                >
                     <Globe2 className="size-4"/>
-                </Card>
+                </div>
                 <div className="min-w-0 flex-1">
                     <p className="text-muted-foreground text-[10px] font-semibold">
                         Current site

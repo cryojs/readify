@@ -32,7 +32,7 @@ export function TextSizeSettings(
     return (
         <TabsContent value="text-size" className="space-y-4">
             <Card>
-                <CardContent className="space-y-4 px-4 py-4">
+                <CardContent className="space-y-2">
                     <div className="flex items-start justify-between gap-3">
                         <div>
                             <Label htmlFor="global-text-scale" className="text-xs">

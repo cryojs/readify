@@ -50,7 +50,7 @@ export function ExactOverridesSettings(
             <div className="flex items-center justify-between gap-4 px-1">
                 <div>
                     <h2 className="text-sm font-semibold">Exact overrides</h2>
-                    <p className="text-muted-foreground mt-0.5 text-[11px]">
+                    <p className="text-muted-foreground text-[11px]">
                         Optionally, replace the sizes for individual text groups.
                     </p>
                 </div>
@@ -69,7 +69,7 @@ export function ExactOverridesSettings(
             </div>
 
             <CollapsibleContent>
-                <Card className="overflow-hidden mt-2">
+                <Card className="overflow-hidden mt-2 p-0">
                     <CardContent className="divide-border divide-y p-0">
                         {FONT_SIZE_FIELDS.map((field) => {
                             const enabled = hasExactOverride(textSize, field.key)
@@ -82,7 +82,7 @@ export function ExactOverridesSettings(
                             )
 
                             return (
-                                <div key={field.key} className="p-3.5">
+                                <div key={field.key} className="p-3">
                                     <div className="flex items-center gap-3">
                                         <div className="min-w-0 flex-1">
                                             <Label htmlFor={switchId} className="text-xs">

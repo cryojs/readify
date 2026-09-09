@@ -36,7 +36,7 @@ export function PopupFooter(
 
     return (
         <div
-            className="sticky bottom-0 -mx-4 space-y-2 bg-accent border-t p-2">
+            className="sticky bottom-0 mt-auto -mx-4 space-y-2 bg-accent border-t p-2">
             <div className="h-4">
                 {status && (
                     <div

@@ -52,15 +52,11 @@ export function TypographySettings(
     return (
         <TabsContent value="typography" className="space-y-4">
             <Card>
-                <CardContent className="space-y-4 px-4 py-4">
+                <CardContent className="space-y-4">
                     <div>
                         <Label htmlFor="font-family" className="text-xs">
                             Font family
                         </Label>
-
-                        <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
-                            Bundled reading fonts work everywhere; system fonts depend on the device.
-                        </p>
 
                         <Select
                             items={fontFamilyItems}
@@ -102,7 +98,7 @@ export function TypographySettings(
                     </div>
 
                     <div
-                        className="bg-muted/40 rounded-md px-3 py-3 text-center text-lg"
+                        className="bg-muted rounded-md p-2 text-center text-lg text-muted-foreground"
                         style={{
                             fontFamily:
                                 getFontFamilyCss(typography.fontFamily) ?? undefined,
@@ -113,7 +109,7 @@ export function TypographySettings(
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="py-0">
                 <CardContent className="divide-border divide-y p-0">
                     <SpacingSetting
                         id="letter-spacing"
