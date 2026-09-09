@@ -21,6 +21,7 @@ function App() {
             <main className="flex flex-1 flex-col space-y-4 px-4 pt-4">
                 <SiteStatusCard
                     hostname={state.hostname}
+                    faviconUrl={state.faviconUrl}
                     isSupported={state.isSupported}
                 />
 

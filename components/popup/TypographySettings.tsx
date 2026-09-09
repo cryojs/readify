@@ -25,6 +25,8 @@ import {
 import {Label} from "@/components/ui/label"
 import {TabsContent} from "@/components/ui/tabs"
 import {SpacingSetting} from "@/components/popup/SpacingSetting"
+import {cn} from "@/lib/utils"
+import {TEXT_PREVIEW_CLASS_NAME} from "@/components/popup/text-preview"
 
 type TypographySettingsProps = {
     typography: SiteSettings["typography"]
@@ -47,19 +49,17 @@ export function TypographySettings(
         onLineHeightChange,
     }: TypographySettingsProps) {
 
-    const fontFamilyItems = FONT_FAMILY_OPTIONS
-
     return (
         <TabsContent value="typography" className="space-y-4">
             <Card>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3">
                     <div>
-                        <Label htmlFor="font-family" className="text-xs">
+                        <Label htmlFor="font-family" className="text-xs mb-3">
                             Font family
                         </Label>
 
                         <Select
-                            items={fontFamilyItems}
+                            items={FONT_FAMILY_OPTIONS}
                             value={typography.fontFamily}
                             disabled={disabled}
                             onValueChange={(value) =>
@@ -98,7 +98,7 @@ export function TypographySettings(
                     </div>
 
                     <div
-                        className="bg-muted rounded-md p-2 text-center text-lg text-muted-foreground"
+                        className={cn(TEXT_PREVIEW_CLASS_NAME, "text-lg")}
                         style={{
                             fontFamily:
                                 getFontFamilyCss(typography.fontFamily) ?? undefined,

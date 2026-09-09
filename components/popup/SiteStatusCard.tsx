@@ -1,3 +1,4 @@
+import {useEffect, useState} from "react"
 import {Globe2} from "lucide-react"
 import {Card, CardContent} from "@/components/ui/card"
 import {cn} from "@/lib/utils"
@@ -5,10 +6,17 @@ import {Badge} from "@/components/ui/badge"
 
 type SiteStatusCardProps = {
     hostname: string | null
+    faviconUrl: string | null
     isSupported: boolean
 }
 
-export function SiteStatusCard({hostname, isSupported}: SiteStatusCardProps) {
+export function SiteStatusCard({hostname, faviconUrl, isSupported}: SiteStatusCardProps) {
+    const [showFavicon, setShowFavicon] = useState(Boolean(faviconUrl))
+
+    useEffect(() => {
+        setShowFavicon(Boolean(faviconUrl))
+    }, [faviconUrl])
+
     return (
         <Card className="bg-muted py-0">
             <CardContent className="flex items-center gap-3 p-2">
@@ -16,7 +24,16 @@ export function SiteStatusCard({hostname, isSupported}: SiteStatusCardProps) {
                     className="bg-background text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md"
                     aria-hidden="true"
                 >
-                    <Globe2 className="size-4"/>
+                    {showFavicon && faviconUrl ? (
+                        <img
+                            src={faviconUrl}
+                            alt=""
+                            className="size-4 rounded-sm object-contain"
+                            onError={() => setShowFavicon(false)}
+                        />
+                    ) : (
+                        <Globe2 className="size-4"/>
+                    )}
                 </div>
                 <div className="min-w-0 flex-1">
                     <p className="text-muted-foreground text-[10px] font-semibold">

@@ -17,6 +17,8 @@ import {Label} from "@/components/ui/label"
 import {Switch} from "@/components/ui/switch"
 import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "@/components/ui/collapsible"
 import {DeferredNumberInput} from "@/components/popup/DeferredNumberInput"
+import {cn} from "@/lib/utils"
+import {TEXT_PREVIEW_CLASS_NAME} from "@/components/popup/text-preview"
 
 type ExactOverridesSettingsProps = {
     textSize: SiteSettings["textSize"]
@@ -132,7 +134,11 @@ export function ExactOverridesSettings(
                                     </div>
                                     {enabled && (
                                         <div
-                                            className="bg-muted text-muted-foreground mt-3 overflow-hidden rounded-md px-2 py-1">
+                                            className={cn(
+                                                TEXT_PREVIEW_CLASS_NAME,
+                                                "mt-3 overflow-hidden",
+                                            )}
+                                        >
                                             <span
                                                 className="block truncate"
                                                 style={{fontSize: `${exactValue}px`}}

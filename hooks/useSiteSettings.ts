@@ -48,6 +48,7 @@ type TypographyUpdater = (
 export function useSiteSettings() {
     const [activeTabId, setActiveTabId] = useState<number | null>(null)
     const [hostname, setHostname] = useState<string | null>(null)
+    const [faviconUrl, setFaviconUrl] = useState<string | null>(null)
     const [settings, setSettings] = useState<SiteSettings>(createDefaultSiteSettings())
     const [isLoading, setIsLoading] = useState(true)
     const [isApplying, setIsApplying] = useState(false)
@@ -72,6 +73,11 @@ export function useSiteSettings() {
 
                 setActiveTabId(tabId)
                 setHostname(activeHostname)
+                setFaviconUrl(
+                    activeHostname && activeTab?.favIconUrl
+                        ? activeTab.favIconUrl
+                        : null,
+                )
                 setIsSupported(Boolean(activeHostname && tabId !== null))
 
                 if (!activeHostname || tabId === null) {
@@ -271,6 +277,7 @@ export function useSiteSettings() {
     return {
         state: {
             hostname,
+            faviconUrl,
             settings,
             isLoading,
             isApplying,

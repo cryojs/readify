@@ -12,6 +12,7 @@ import {Label} from "@/components/ui/label"
 import {TabsContent} from "@/components/ui/tabs"
 import {DeferredNumberInput} from "@/components/popup/DeferredNumberInput"
 import {ExactOverridesSettings} from "@/components/popup/ExactOverridesSettings"
+import {TEXT_PREVIEW_CLASS_NAME} from "@/components/popup/text-preview"
 
 type TextSizeSettingsProps = {
     textSize: SiteSettings["textSize"]
@@ -42,7 +43,7 @@ export function TextSizeSettings(
                                 Preserves the relative sizes.
                             </p>
                         </div>
-                        <div className="relative w-[4.75rem] shrink-0">
+                        <div className="relative w-16 shrink-0">
                             <DeferredNumberInput
                                 id="global-text-scale"
                                 value={textSize.scale}
@@ -52,7 +53,7 @@ export function TextSizeSettings(
                                 aria-describedby="global-text-scale-description"
                                 disabled={disabled}
                                 onCommit={onScaleChange}
-                                className="h-9 px-2 pr-6 text-right tabular-nums [&::-webkit-inner-spin-button]:appearance-none"
+                                className="h-8 px-2 pr-6 text-right tabular-nums [&::-webkit-inner-spin-button]:appearance-none"
                             />
                             <span
                                 className="text-muted-foreground pointer-events-none absolute inset-y-0 right-2 flex items-center text-[10px]">
@@ -60,7 +61,7 @@ export function TextSizeSettings(
                             </span>
                         </div>
                     </div>
-                    <div className="text-muted-foreground bg-muted rounded-md px-3 py-2">
+                    <div className={TEXT_PREVIEW_CLASS_NAME}>
                         <span style={{fontSize: `${16 * (textSize.scale / 100)}px`}}>
                             Reading comfortably starts here.
                         </span>
