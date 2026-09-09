@@ -2,9 +2,11 @@ import {
     Tabs,
     TabsList,
     TabsTrigger,
+    TabsContent,
 } from "@/components/ui/tabs"
 import {PopupHeader} from "@/components/popup/PopupHeader"
 import {SiteStatusCard} from "@/components/popup/SiteStatusCard"
+import {SimplifySettings} from "@/components/popup/SimplifySettings"
 import {TextSizeSettings} from "@/components/popup/TextSizeSettings"
 import {TypographySettings} from "@/components/popup/TypographySettings"
 import {PopupFooter} from "@/components/popup/PopupFooter"
@@ -34,11 +36,12 @@ function App() {
                 >
                     <Tabs defaultValue="text-size">
                         <TabsList
-                            aria-label="Typography settings"
+                            aria-label="Reading and preset settings"
                             className="mb-2 w-full"
                         >
-                            <TabsTrigger value="text-size">Text size</TabsTrigger>
+                            <TabsTrigger value="text-size">Reading</TabsTrigger>
                             <TabsTrigger value="typography">Typography</TabsTrigger>
+                            <TabsTrigger value="presets">Presets</TabsTrigger>
                         </TabsList>
 
                         <TextSizeSettings
@@ -57,6 +60,7 @@ function App() {
                             onLineHeightToggle={actions.typography.toggleLineHeight}
                             onLineHeightChange={actions.typography.updateLineHeight}
                         />
+                        <TabsContent value="presets" />
                     </Tabs>
 
                     <PopupFooter

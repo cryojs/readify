@@ -13,6 +13,7 @@ import {TabsContent} from "@/components/ui/tabs"
 import {DeferredNumberInput} from "@/components/popup/DeferredNumberInput"
 import {ExactOverridesSettings} from "@/components/popup/ExactOverridesSettings"
 import {TEXT_PREVIEW_CLASS_NAME} from "@/components/popup/text-preview"
+import {SimplifySettings} from "@/components/popup/SimplifySettings.tsx";
 
 type TextSizeSettingsProps = {
     textSize: SiteSettings["textSize"]
@@ -32,6 +33,7 @@ export function TextSizeSettings(
     }: TextSizeSettingsProps) {
     return (
         <TabsContent value="text-size" className="space-y-4">
+            <SimplifySettings />
             <Card>
                 <CardContent className="space-y-2">
                     <div className="flex items-start justify-between gap-3">
