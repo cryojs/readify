@@ -2,13 +2,13 @@ import {
     Tabs,
     TabsList,
     TabsTrigger,
-    TabsContent,
 } from "@/components/ui/tabs"
 import {PopupHeader} from "@/components/popup/PopupHeader"
 import {SiteStatusCard} from "@/components/popup/SiteStatusCard"
 import {SimplifySettings} from "@/components/popup/SimplifySettings"
 import {TextSizeSettings} from "@/components/popup/TextSizeSettings"
 import {TypographySettings} from "@/components/popup/TypographySettings"
+import {PresetsSettings} from "@/components/popup/PresetsSettings"
 import {PopupFooter} from "@/components/popup/PopupFooter"
 import {useSiteSettings} from "@/hooks/useSiteSettings"
 
@@ -61,7 +61,7 @@ function App() {
                             onLineHeightToggle={actions.typography.toggleLineHeight}
                             onLineHeightChange={actions.typography.updateLineHeight}
                         />
-                        <TabsContent value="presets" />
+                        <PresetsSettings />
                     </Tabs>
 
                     <PopupFooter

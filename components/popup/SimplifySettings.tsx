@@ -21,28 +21,13 @@ import {
 } from "@/components/ui/select"
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip"
 import {Label} from "@/components/ui/label"
+import {buildAiInput, type AiMode} from "@/lib/ai"
 
 const MODES = [
     {value: "shorten", label: "Shorten", icon: Minimize2},
     {value: "explain", label: "Explain", icon: Lightbulb},
     {value: "ask", label: "Ask", icon: MessageCircleQuestion},
 ] as const
-
-type SimplifyMode = (typeof MODES)[number]["value"]
-
-const MODE_INSTRUCTIONS: Record<SimplifyMode, string> = {
-    shorten: "Shorten the following page text while preserving its meaning and key information.",
-    explain: "Explain the following page text in clear, accessible language.",
-    ask: "Answer the user's question using the following page text as context.",
-}
-
-function buildAiInput(mode: SimplifyMode, question: string, pageText: string) {
-    const questionSection = mode === "ask"
-        ? `\n\nQuestion:\n${question.trim() || "(No question provided.)"}`
-        : ""
-
-    return `${MODE_INSTRUCTIONS[mode]}${questionSection}\n\nPage text:\n${pageText}`
-}
 
 function SimplifyInfo() {
     return (
@@ -95,7 +80,7 @@ type SimplifySettingsProps = {
 }
 
 export function SimplifySettings({getPageText}: SimplifySettingsProps) {
-    const [selectedMode, setSelectedMode] = useState<SimplifyMode>("shorten")
+    const [selectedMode, setSelectedMode] = useState<AiMode>("shorten")
     const [question, setQuestion] = useState("")
     const [result, setResult] = useState<string | null>(null)
     const [isReadingPage, setIsReadingPage] = useState(false)
@@ -126,7 +111,7 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
                     <Select
                         items={MODES}
                         value={selectedMode}
-                        onValueChange={(value) => setSelectedMode(value as SimplifyMode)}
+                        onValueChange={(value) => setSelectedMode(value as AiMode)}
                     >
                         <SelectTrigger id="simplify-mode" className="h-8 min-w-0 flex-1">
                             <SelectValue>
