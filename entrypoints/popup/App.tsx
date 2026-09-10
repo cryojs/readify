@@ -47,6 +47,7 @@ function App() {
                         <TextSizeSettings
                             textSize={state.settings.textSize}
                             disabled={controlsDisabled}
+                            getPageText={actions.getPageText}
                             onScaleChange={actions.textSize.updateTextScale}
                             onOverrideToggle={actions.textSize.toggleExactOverride}
                             onExactSizeChange={actions.textSize.updateExactSize}

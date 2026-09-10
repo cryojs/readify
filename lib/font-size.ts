@@ -1,6 +1,7 @@
 export const LEGACY_FONT_SIZE_STORAGE_KEY = "readify.fontSizeProfiles"
 export const SITE_SETTINGS_STORAGE_KEY_PREFIX = "readify.siteSettings."
 export const APPLY_SITE_SETTINGS_MESSAGE = "APPLY_SITE_SETTINGS"
+export const GET_PAGE_TEXT_MESSAGE = "GET_PAGE_TEXT"
 export const SITE_SETTINGS_VERSION = 2 as const
 
 export const MIN_FONT_SIZE = 8
@@ -217,6 +218,14 @@ export type SiteSettings = {
 export type SiteSettingsMessage = {
   type: typeof APPLY_SITE_SETTINGS_MESSAGE
   settings: SiteSettings
+}
+
+export type GetPageTextMessage = {
+  type: typeof GET_PAGE_TEXT_MESSAGE
+}
+
+export type PageTextResponse = {
+  text: string
 }
 
 export const DEFAULT_TEXT_SIZE_SETTINGS: TextSizeSettings = {
@@ -470,4 +479,12 @@ export function isSiteSettingsMessage(value: unknown): value is SiteSettingsMess
     value.type === APPLY_SITE_SETTINGS_MESSAGE &&
     isRecord(value.settings)
   )
+}
+
+export function isGetPageTextMessage(value: unknown): value is GetPageTextMessage {
+  return isRecord(value) && value.type === GET_PAGE_TEXT_MESSAGE
+}
+
+export function isPageTextResponse(value: unknown): value is PageTextResponse {
+  return isRecord(value) && typeof value.text === "string"
 }

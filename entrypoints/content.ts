@@ -2,6 +2,7 @@ import "@/assets/reading-fonts.css"
 
 import {
   APPLY_SITE_SETTINGS_MESSAGE,
+  isGetPageTextMessage,
   LEGACY_FONT_SIZE_STORAGE_KEY,
   getFontFamilyCss,
   getFontSizeCategory,
@@ -250,12 +251,16 @@ export default defineContentScript({
     })
 
     browser.runtime.onMessage.addListener((message) => {
-      if (!isSiteSettingsMessage(message)) {
-        return
+      if (isSiteSettingsMessage(message)) {
+        setActiveSettings(message.settings)
+        return Promise.resolve({ applied: true })
       }
 
-      setActiveSettings(message.settings)
-      return Promise.resolve({ applied: true })
+      if (isGetPageTextMessage(message)) {
+        return Promise.resolve({
+          text: document.body?.innerText.trim() ?? "",
+        })
+      }
     })
   },
 })

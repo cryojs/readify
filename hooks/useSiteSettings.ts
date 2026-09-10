@@ -4,6 +4,7 @@ import {
     APPLY_SITE_SETTINGS_MESSAGE,
     FONT_SIZE_FIELDS,
     FONT_SIZE_STEP,
+    GET_PAGE_TEXT_MESSAGE,
     LETTER_SPACING_STEP,
     LINE_HEIGHT_STEP,
     MAX_FONT_SIZE,
@@ -19,6 +20,7 @@ import {
     clampNumber,
     createDefaultSiteSettings,
     getSupportedHostname,
+    isPageTextResponse,
     normalizeSiteSettings,
     type FontFamilyKey,
     type FontSizeCategory,
@@ -274,6 +276,22 @@ export function useSiteSettings() {
         }
     }
 
+    const getPageText = async () => {
+        if (!hostname || activeTabId === null) {
+            throw new Error("Open a regular website before reading the page.")
+        }
+
+        const response = await browser.tabs.sendMessage(activeTabId, {
+            type: GET_PAGE_TEXT_MESSAGE,
+        })
+
+        if (!isPageTextResponse(response)) {
+            throw new Error("The active page did not return readable text.")
+        }
+
+        return response.text
+    }
+
     return {
         state: {
             hostname,
@@ -297,6 +315,7 @@ export function useSiteSettings() {
                 toggleLineHeight,
                 updateLineHeight,
             },
+            getPageText,
             resetSettings,
             applySettings,
         },

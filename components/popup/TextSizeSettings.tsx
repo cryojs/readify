@@ -18,6 +18,7 @@ import {SimplifySettings} from "@/components/popup/SimplifySettings.tsx";
 type TextSizeSettingsProps = {
     textSize: SiteSettings["textSize"]
     disabled: boolean
+    getPageText: () => Promise<string>
     onScaleChange: (value: number) => void
     onOverrideToggle: (key: FontSizeCategory, enabled: boolean) => void
     onExactSizeChange: (key: FontSizeCategory, value: number) => void
@@ -27,13 +28,14 @@ export function TextSizeSettings(
     {
         textSize,
         disabled,
+        getPageText,
         onScaleChange,
         onOverrideToggle,
         onExactSizeChange,
     }: TextSizeSettingsProps) {
     return (
         <TabsContent value="text-size" className="space-y-4">
-            <SimplifySettings />
+            <SimplifySettings getPageText={getPageText} />
             <Card>
                 <CardContent className="space-y-2">
                     <div className="flex items-start justify-between gap-3">
