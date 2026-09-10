@@ -180,11 +180,11 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
                     </div>
 
                     <div
-                        className="text-muted-foreground min-h-20 px-3 py-3 text-xs/relaxed"
+                        className="text-muted-foreground min-h-20 max-h-54 overflow-y-auto px-3 py-3 text-xs/relaxed"
                         aria-labelledby="simplify-result-label"
                         aria-live="polite"
                     >
-                        <span className="whitespace-pre-wrap break-words">
+                        <span className="whitespace-pre-wrap wrap-break-word">
                             {result ?? "Your result will appear here."}
                         </span>
                     </div>
