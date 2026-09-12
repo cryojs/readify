@@ -38,8 +38,8 @@ function SimplifyInfo() {
                 className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex size-5 shrink-0 cursor-default items-center justify-center rounded-sm outline-none transition-colors focus-visible:ring-2"
                 render={
                     <span tabIndex={0} aria-label="How to use Readify">
-                                    <Info className="size-3.5" aria-hidden="true"/>
-                                </span>
+                        <Info className="size-3.5" aria-hidden="true"/>
+                    </span>
                 }
             />
             <TooltipContent
@@ -104,7 +104,7 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
             <CardContent className="space-y-2 p-3">
                 <div className="flex items-center justify-between">
                     <Label>Simplify text</Label>
-                    <SimplifyInfo />
+                    <SimplifyInfo/>
                 </div>
 
                 <div className="flex items-center gap-2">

@@ -10,6 +10,8 @@ import {
 
 export type StorageOperation = "read" | "write"
 
+export const GEMINI_API_KEY_STORAGE_KEY = "readify.geminiApiKey"
+
 export class SettingsStorageError extends Error {
   operation: StorageOperation
   causeValue: unknown
@@ -111,6 +113,19 @@ export async function saveSiteSettings(
   })
 
   return normalizedSettings
+}
+
+export async function loadGeminiApiKey(): Promise<string> {
+  const values = await readStorage(GEMINI_API_KEY_STORAGE_KEY)
+  const apiKey = values[GEMINI_API_KEY_STORAGE_KEY]
+
+  return typeof apiKey === "string" ? apiKey : ""
+}
+
+export async function saveGeminiApiKey(apiKey: string): Promise<void> {
+  await writeStorage({
+    [GEMINI_API_KEY_STORAGE_KEY]: apiKey,
+  })
 }
 
 export function getStorageErrorMessage(
