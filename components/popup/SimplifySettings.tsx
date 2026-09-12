@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/select"
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip"
 import {Label} from "@/components/ui/label"
-import {buildAiInput, type AiMode} from "@/lib/ai"
+import {buildAiInput, generateGeminiResponse, type AiMode} from "@/lib/ai"
+import {loadGeminiApiKey} from "@/lib/settings-storage"
 
 const MODES = [
     {value: "shorten", label: "Shorten", icon: Minimize2},
@@ -83,19 +84,31 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
     const [selectedMode, setSelectedMode] = useState<AiMode>("shorten")
     const [question, setQuestion] = useState("")
     const [result, setResult] = useState<string | null>(null)
-    const [isReadingPage, setIsReadingPage] = useState(false)
+    const [isGenerating, setIsGenerating] = useState(false)
 
     const handleEntirePage = async () => {
-        setIsReadingPage(true)
+        setIsGenerating(true)
 
         try {
+            const apiKey = await loadGeminiApiKey()
+
+            if (!apiKey.trim()) {
+                setResult("Add your Gemini API key in Presets before generating a result.")
+                return
+            }
+
             const pageText = await getPageText()
-            setResult(buildAiInput(selectedMode, question, pageText))
+            const prompt = buildAiInput(selectedMode, question, pageText)
+            setResult(await generateGeminiResponse(apiKey, prompt))
         } catch (error) {
-            console.warn("[Readify] Could not read the active page.", error)
-            setResult("Could not read the active page. Reload the page and try again.")
+            console.warn("[Readify] Could not generate a Gemini response.", error)
+            setResult(
+                error instanceof Error
+                    ? `Could not generate a response: ${error.message}`
+                    : "Could not generate a response. Please try again.",
+            )
         } finally {
-            setIsReadingPage(false)
+            setIsGenerating(false)
         }
     }
 
@@ -136,11 +149,11 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
                         type="button"
                         variant="outline"
                         className="shrink-0"
-                        disabled={isReadingPage}
+                        disabled={isGenerating}
                         onClick={() => void handleEntirePage()}
                     >
                         <FileText/>
-                        {isReadingPage ? "Reading..." : "Entire Page"}
+                        {isGenerating ? "Generating..." : "Entire Page"}
                     </Button>
                 </div>
 
