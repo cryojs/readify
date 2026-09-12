@@ -55,7 +55,7 @@ function SimplifyInfo() {
                     </p>
                     <p>
                         <span className="font-medium">Entire page:</span>{" "}
-                        use the browser menu to simplify the page and replace its text.
+                        use the browser menu to simplify the page.
                     </p>
                 </div>
 

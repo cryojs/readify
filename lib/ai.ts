@@ -13,3 +13,4 @@ export function buildAiInput(mode: AiMode, question: string, pageText: string) {
 
     return `${AI_MODE_INSTRUCTIONS[mode]}${questionSection}\n\nPage text:\n${pageText}`
 }
+
