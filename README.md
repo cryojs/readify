@@ -5,9 +5,10 @@
 > Still in development, above features (and more) are not yet finalized. Thank you!
 
 ### Features
-- Simplify text
+- Simplify text with AI
 - Change text sizes
 - Change typography styling
+- Create/use preset style settings
 
 ### Demo/Overview
 
