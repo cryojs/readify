@@ -1,7 +1,6 @@
 import "@/assets/reading-fonts.css"
 
 import {
-  APPLY_SITE_SETTINGS_MESSAGE,
   isGetPageTextMessage,
   LEGACY_FONT_SIZE_STORAGE_KEY,
   getFontFamilyCss,

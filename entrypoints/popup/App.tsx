@@ -5,7 +5,6 @@ import {
 } from "@/components/ui/tabs"
 import {PopupHeader} from "@/components/popup/PopupHeader"
 import {SiteStatusCard} from "@/components/popup/SiteStatusCard"
-import {SimplifySettings} from "@/components/popup/SimplifySettings"
 import {TextSizeSettings} from "@/components/popup/TextSizeSettings"
 import {TypographySettings} from "@/components/popup/TypographySettings"
 import {PresetsSettings} from "@/components/popup/PresetsSettings"

@@ -13,7 +13,7 @@ import remarkGfm from "remark-gfm"
 import {useEffect, useState} from "react"
 
 import {Button} from "@/components/ui/button"
-import {Card, CardContent, CardTitle} from "@/components/ui/card"
+import {Card, CardContent} from "@/components/ui/card"
 import {Input} from "@/components/ui/input"
 import {Kbd} from "@/components/ui/kbd"
 import {
@@ -38,6 +38,17 @@ const MODES = [
     {value: "explain", label: "Explain", icon: Lightbulb},
     {value: "ask", label: "Ask", icon: MessageCircleQuestion},
 ] as const
+
+const MARKDOWN_RESULT_CLASS_NAME = [
+    "text-muted-foreground min-h-8 max-h-54 overflow-x-auto overflow-y-auto",
+    "wrap-break-word px-3 py-2 text-xs/relaxed",
+    "[&_a]:underline [&_a]:underline-offset-2",
+    "[&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:italic",
+    "[&_code]:rounded [&_code]:bg-muted",
+    "[&_h1]:mt-5 [&_h1]:mb-2 [&_h1]:font-semibold",
+    "[&_hr]:my-4 [&_li]:ml-4 [&_ol]:list-decimal",
+    "[&_pre]:p-2",
+].join(" ")
 
 function SimplifyInfo() {
     return (
@@ -251,7 +262,7 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
                     </div>
 
                     <div
-                        className="text-muted-foreground min-h-8 max-h-54 overflow-x-auto overflow-y-auto wrap-break-word px-3 py-2 text-xs/relaxed [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted [&_h1]:mt-5 [&_h1]:mb-2 [&_h1]:font-semibold [&_hr]:my-4 [&_li]:ml-4 [&_ol]:list-decimal [&_pre]:p-2"
+                        className={MARKDOWN_RESULT_CLASS_NAME}
                         aria-labelledby="simplify-result-label"
                         aria-live="polite"
                     >
