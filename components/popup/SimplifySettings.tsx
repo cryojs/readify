@@ -5,8 +5,11 @@ import {
     Lightbulb,
     MessageCircleQuestion,
     Minimize2,
+    Trash2,
 } from "lucide-react"
-import {useState} from "react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import {useEffect, useState} from "react"
 
 import {Button} from "@/components/ui/button"
 import {Card, CardContent, CardTitle} from "@/components/ui/card"
@@ -22,7 +25,12 @@ import {
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip"
 import {Label} from "@/components/ui/label"
 import {buildAiInput, generateGeminiResponse, type AiMode} from "@/lib/ai"
-import {loadGeminiApiKey} from "@/lib/settings-storage"
+import {
+    clearSimplifyResult,
+    loadGeminiApiKey,
+    loadSimplifyResult,
+    saveSimplifyResult,
+} from "@/lib/settings-storage"
 
 const MODES = [
     {value: "shorten", label: "Shorten", icon: Minimize2},
@@ -86,6 +94,26 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
     const [result, setResult] = useState<string | null>(null)
     const [isGenerating, setIsGenerating] = useState(false)
 
+    useEffect(() => {
+        let isCancelled = false
+
+        void loadSimplifyResult()
+            .then((storedResult) => {
+                if (!isCancelled) {
+                    setResult(storedResult)
+                }
+            })
+            .catch((error) => {
+                if (!isCancelled) {
+                    console.warn("[Readify] Could not load the saved result.", error)
+                }
+            })
+
+        return () => {
+            isCancelled = true
+        }
+    }, [])
+
     const handleEntirePage = async () => {
         setIsGenerating(true)
 
@@ -99,7 +127,11 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
 
             const pageText = await getPageText()
             const prompt = buildAiInput(selectedMode, question, pageText)
-            setResult(await generateGeminiResponse(apiKey, prompt))
+            const generatedResult = await generateGeminiResponse(apiKey, prompt)
+            setResult(generatedResult)
+            void saveSimplifyResult(generatedResult).catch((error) => {
+                console.warn("[Readify] Could not save the generated result.", error)
+            })
         } catch (error) {
             console.warn("[Readify] Could not generate a Gemini response.", error)
             setResult(
@@ -110,6 +142,13 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
         } finally {
             setIsGenerating(false)
         }
+    }
+
+    const handleClearResult = () => {
+        setResult(null)
+        void clearSimplifyResult().catch((error) => {
+            console.warn("[Readify] Could not clear the saved result.", error)
+        })
     }
 
     return (
@@ -171,20 +210,43 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
                 <div className="overflow-hidden rounded-md border bg-muted/30">
                     <div className="flex items-center justify-between gap-3 border-b bg-card pl-3 pr-1 py-1">
                         <h3 id="simplify-result-label" className="text-xs font-medium">Result</h3>
-                        <Button type="button" variant="outline" size="xs">
-                            <Copy/>
-                            Copy
-                        </Button>
+                        <div className="flex items-center gap-1">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="xs"
+                                disabled={!result || isGenerating}
+                                onClick={handleClearResult}
+                            >
+                                <Trash2/>
+                                Clear
+                            </Button>
+                            <Button type="button" variant="outline" size="xs">
+                                <Copy/>
+                                Copy
+                            </Button>
+                        </div>
                     </div>
 
                     <div
-                        className="text-muted-foreground min-h-20 max-h-54 overflow-y-auto px-3 py-3 text-xs/relaxed"
+                        className="text-muted-foreground min-h-8 max-h-54 overflow-y-auto wrap-break-word px-3 py-2 text-xs/relaxed [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted [&_h1]:mt-5 [&_h1]:mb-2 [&_h1]:font-semibold [&_hr]:my-4 [&_li]:ml-4 [&_ol]:list-decimal [&_pre]:overflow-x-auto [&_pre]:p-2"
                         aria-labelledby="simplify-result-label"
                         aria-live="polite"
                     >
-                        <span className="whitespace-pre-wrap wrap-break-word">
-                            {result ?? "Your result will appear here."}
-                        </span>
+                        {result ? (
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                    a: ({node, ...props}) => (
+                                        <a {...props} target="_blank" rel="noreferrer"/>
+                                    ),
+                                }}
+                            >
+                                {result}
+                            </ReactMarkdown>
+                        ) : (
+                            <span>Your result will appear here.</span>
+                        )}
                     </div>
                 </div>
             </CardContent>

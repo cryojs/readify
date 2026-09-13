@@ -11,6 +11,7 @@ import {
 export type StorageOperation = "read" | "write"
 
 export const GEMINI_API_KEY_STORAGE_KEY = "readify.geminiApiKey"
+export const SIMPLIFY_RESULT_STORAGE_KEY = "readify.simplifyResult"
 
 export class SettingsStorageError extends Error {
   operation: StorageOperation
@@ -55,6 +56,18 @@ async function readStorage(keys: string | string[]): Promise<Record<string, unkn
 async function writeStorage(values: Record<string, unknown>): Promise<void> {
   try {
     await getStorageArea().set(values)
+  } catch (error) {
+    if (error instanceof SettingsStorageError) {
+      throw new SettingsStorageError("write", error.causeValue)
+    }
+
+    throw new SettingsStorageError("write", error)
+  }
+}
+
+async function removeStorage(keys: string | string[]): Promise<void> {
+  try {
+    await getStorageArea().remove(keys)
   } catch (error) {
     if (error instanceof SettingsStorageError) {
       throw new SettingsStorageError("write", error.causeValue)
@@ -126,6 +139,23 @@ export async function saveGeminiApiKey(apiKey: string): Promise<void> {
   await writeStorage({
     [GEMINI_API_KEY_STORAGE_KEY]: apiKey,
   })
+}
+
+export async function loadSimplifyResult(): Promise<string | null> {
+  const values = await readStorage(SIMPLIFY_RESULT_STORAGE_KEY)
+  const result = values[SIMPLIFY_RESULT_STORAGE_KEY]
+
+  return typeof result === "string" && result ? result : null
+}
+
+export async function saveSimplifyResult(result: string): Promise<void> {
+  await writeStorage({
+    [SIMPLIFY_RESULT_STORAGE_KEY]: result,
+  })
+}
+
+export async function clearSimplifyResult(): Promise<void> {
+  await removeStorage(SIMPLIFY_RESULT_STORAGE_KEY)
 }
 
 export function getStorageErrorMessage(
