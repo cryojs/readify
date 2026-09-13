@@ -1,4 +1,5 @@
 import {
+    Check,
     Copy,
     FileText,
     Info,
@@ -93,6 +94,7 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
     const [question, setQuestion] = useState("")
     const [result, setResult] = useState<string | null>(null)
     const [isGenerating, setIsGenerating] = useState(false)
+    const [isCopied, setIsCopied] = useState(false)
 
     useEffect(() => {
         let isCancelled = false
@@ -129,6 +131,7 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
             const prompt = buildAiInput(selectedMode, question, pageText)
             const generatedResult = await generateGeminiResponse(apiKey, prompt)
             setResult(generatedResult)
+            setIsCopied(false)
             void saveSimplifyResult(generatedResult).catch((error) => {
                 console.warn("[Readify] Could not save the generated result.", error)
             })
@@ -146,9 +149,22 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
 
     const handleClearResult = () => {
         setResult(null)
+        setIsCopied(false)
         void clearSimplifyResult().catch((error) => {
             console.warn("[Readify] Could not clear the saved result.", error)
         })
+    }
+
+    const handleCopyResult = async () => {
+        if (!result) return
+
+        try {
+            await navigator.clipboard.writeText(result)
+            setIsCopied(true)
+            window.setTimeout(() => setIsCopied(false), 1500)
+        } catch (error) {
+            console.warn("[Readify] Could not copy the result.", error)
+        }
     }
 
     return (
@@ -221,15 +237,21 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
                                 <Trash2/>
                                 Clear
                             </Button>
-                            <Button type="button" variant="outline" size="xs">
-                                <Copy/>
-                                Copy
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="xs"
+                                disabled={!result || isGenerating}
+                                onClick={() => void handleCopyResult()}
+                            >
+                                {isCopied ? <Check/> : <Copy/>}
+                                {isCopied ? "Copied" : "Copy"}
                             </Button>
                         </div>
                     </div>
 
                     <div
-                        className="text-muted-foreground min-h-8 max-h-54 overflow-y-auto wrap-break-word px-3 py-2 text-xs/relaxed [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted [&_h1]:mt-5 [&_h1]:mb-2 [&_h1]:font-semibold [&_hr]:my-4 [&_li]:ml-4 [&_ol]:list-decimal [&_pre]:overflow-x-auto [&_pre]:p-2"
+                        className="text-muted-foreground min-h-8 max-h-54 overflow-x-auto overflow-y-auto wrap-break-word px-3 py-2 text-xs/relaxed [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted [&_h1]:mt-5 [&_h1]:mb-2 [&_h1]:font-semibold [&_hr]:my-4 [&_li]:ml-4 [&_ol]:list-decimal [&_pre]:p-2"
                         aria-labelledby="simplify-result-label"
                         aria-live="polite"
                     >
@@ -239,6 +261,18 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
                                 components={{
                                     a: ({node, ...props}) => (
                                         <a {...props} target="_blank" rel="noreferrer"/>
+                                    ),
+                                    table: ({node, ...props}) => (
+                                        <table {...props} className="my-3 min-w-max border-collapse text-left"/>
+                                    ),
+                                    thead: ({node, ...props}) => (
+                                        <thead {...props} className="bg-muted/50"/>
+                                    ),
+                                    th: ({node, ...props}) => (
+                                        <th {...props} className="border border-border px-2 py-1 font-semibold"/>
+                                    ),
+                                    td: ({node, ...props}) => (
+                                        <td {...props} className="border border-border px-2 py-1"/>
                                     ),
                                 }}
                             >
