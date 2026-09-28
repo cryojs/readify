@@ -2,6 +2,7 @@ import {Card, CardContent} from "@/components/ui/card"
 import {Field, FieldDescription} from "@/components/ui/field"
 import {Input} from "@/components/ui/input"
 import {Label} from "@/components/ui/label"
+import {Switch} from "@/components/ui/switch"
 import {
     Select,
     SelectContent,
@@ -25,9 +26,22 @@ import {
     loadGrokApiKey,
     saveAiApiKey,
     saveAiProvider,
+    type AppTheme,
 } from "@/lib/settings-storage"
 
-export function PresetsSettings() {
+type PresetsSettingsProps = {
+    theme: AppTheme
+    onThemeChange: (theme: AppTheme) => void
+    hidePopupHeader: boolean
+    onHidePopupHeaderChange: (hide: boolean) => void
+}
+
+export function PresetsSettings({
+    theme,
+    onThemeChange,
+    hidePopupHeader,
+    onHidePopupHeaderChange,
+}: PresetsSettingsProps) {
     const [selectedProvider, setSelectedProvider] = useState<AiProvider>("gemini")
     const [apiKeys, setApiKeys] = useState<Record<AiProvider, string>>({
         gemini: "",
@@ -145,6 +159,46 @@ export function PresetsSettings() {
                             }}
                         />
                     </Field>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardContent className="space-y-3">
+                    <div>
+                        <Label className="text-xs">Appearance</Label>
+                        <p className="text-muted-foreground text-[11px] leading-relaxed">
+                            Choose the light or dark theme for Readify.
+                        </p>
+                    </div>
+                    <div className="flex items-center justify-between rounded-md border bg-muted/30 p-2">
+                        <div className="space-y-0.5">
+                            <p className="text-xs font-medium">
+                                {theme === "dark" ? "Dark mode" : "Light mode"}
+                            </p>
+                            <p className="text-muted-foreground text-[11px]">
+                                {theme === "dark" ? "Darker interface" : "Light interface"}
+                            </p>
+                        </div>
+                        <Switch
+                            aria-label="Toggle dark mode"
+                            checked={theme === "dark"}
+                            onCheckedChange={(checked) => {
+                                onThemeChange(checked ? "dark" : "light")
+                            }}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between rounded-md border bg-muted/30 p-2">
+                        <div className="space-y-0.5">
+                            <p className="text-xs font-medium">Hide top banner</p>
+                            <p className="text-muted-foreground text-[11px]">
+                                Hide the logo and description at the top of the popup.
+                            </p>
+                        </div>
+                        <Switch
+                            aria-label="Hide top banner"
+                            checked={hidePopupHeader}
+                            onCheckedChange={onHidePopupHeaderChange}
+                        />
+                    </div>
                 </CardContent>
             </Card>
         </TabsContent>

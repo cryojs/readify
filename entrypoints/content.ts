@@ -12,7 +12,11 @@ import {
 } from "@/lib/font-size"
 import {
   getSiteSettingsStorageKey,
+  loadAppTheme,
   loadStoredSiteSettings,
+  normalizeAppTheme,
+  THEME_STORAGE_KEY,
+  type AppTheme,
 } from "@/lib/settings-storage"
 import {
   OPEN_FOLLOW_UP_MESSAGE,
@@ -70,6 +74,7 @@ let simplifyStatusTimer: number | null = null
 let followUpHost: HTMLElement | null = null
 let followUpSelection: SavedSelection | null = null
 let followUpRequestToken = 0
+let followUpTheme: AppTheme = "light"
 let nextSelectionId = 0
 let preserveSelectionUntil = 0
 const selectionTargets = new Map<number, SavedSelection>()
@@ -404,6 +409,12 @@ function createFollowUpIcon(name: "copy" | "send"): SVGSVGElement {
   return svg
 }
 
+function applyFollowUpTheme() {
+  if (followUpHost) {
+    followUpHost.dataset.theme = followUpTheme
+  }
+}
+
 function getFollowUpPanelElements(): FollowUpPanelElements | null {
   if (!followUpHost || !followUpHost.isConnected) {
     followUpHost = document.createElement("div")
@@ -413,6 +424,7 @@ function getFollowUpPanelElements(): FollowUpPanelElements | null {
     followUpHost.style.right = "16px"
     followUpHost.style.zIndex = "2147483647"
     followUpHost.style.pointerEvents = "none"
+    applyFollowUpTheme()
 
     const shadowRoot = followUpHost.attachShadow({mode: "open"})
     const style = document.createElement("style")
@@ -432,21 +444,19 @@ function getFollowUpPanelElements(): FollowUpPanelElements | null {
         all: initial;
         color-scheme: light;
       }
-      @media (prefers-color-scheme: dark) {
-        :host {
-          --readify-background: oklch(0.145 0 0);
-          --readify-foreground: oklch(0.985 0 0);
-          --readify-card: oklch(0.205 0 0);
-          --readify-card-foreground: oklch(0.985 0 0);
-          --readify-muted: oklch(0.269 0 0);
-          --readify-muted-foreground: oklch(0.708 0 0);
-          --readify-border: oklch(1 0 0 / 10%);
-          --readify-input: oklch(1 0 0 / 15%);
-          --readify-primary: oklch(0.922 0 0);
-          --readify-primary-foreground: oklch(0.205 0 0);
-          --readify-ring: oklch(0.556 0 0);
-          color-scheme: dark;
-        }
+      :host([data-theme="dark"]) {
+        --readify-background: oklch(0.145 0 0);
+        --readify-foreground: oklch(0.985 0 0);
+        --readify-card: oklch(0.205 0 0);
+        --readify-card-foreground: oklch(0.985 0 0);
+        --readify-muted: oklch(0.269 0 0);
+        --readify-muted-foreground: oklch(0.708 0 0);
+        --readify-border: oklch(1 0 0 / 10%);
+        --readify-input: oklch(1 0 0 / 15%);
+        --readify-primary: oklch(0.922 0 0);
+        --readify-primary-foreground: oklch(0.205 0 0);
+        --readify-ring: oklch(0.556 0 0);
+        color-scheme: dark;
       }
       .panel {
         background: var(--readify-card);
@@ -875,6 +885,15 @@ export default defineContentScript({
       return
     }
 
+    void loadAppTheme()
+      .then((theme) => {
+        followUpTheme = theme
+        applyFollowUpTheme()
+      })
+      .catch((error) => {
+        console.warn("[Readify] Could not load the saved theme for the follow-up panel.", error)
+      })
+
     document.addEventListener("selectionchange", () => {
       if (!captureSelection() && Date.now() > preserveSelectionUntil) {
         savedSelection = null
@@ -979,6 +998,11 @@ export default defineContentScript({
     browser.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== "local") {
         return
+      }
+
+      if (changes[THEME_STORAGE_KEY]) {
+        followUpTheme = normalizeAppTheme(changes[THEME_STORAGE_KEY].newValue)
+        applyFollowUpTheme()
       }
 
       if (changes[storageKey]) {

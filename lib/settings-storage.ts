@@ -18,7 +18,11 @@ export const GEMINI_API_KEY_STORAGE_KEY = "readify.geminiApiKey"
 export const GROQ_API_KEY_STORAGE_KEY = "readify.groqApiKey"
 export const GROK_API_KEY_STORAGE_KEY = "readify.grokApiKey"
 export const AI_PROVIDER_STORAGE_KEY = "readify.aiProvider"
+export const THEME_STORAGE_KEY = "readify.theme"
+export const HIDE_POPUP_HEADER_STORAGE_KEY = "readify.hidePopupHeader"
 export const SIMPLIFY_RESULT_STORAGE_KEY = "readify.simplifyResult"
+
+export type AppTheme = "light" | "dark"
 
 export class SettingsStorageError extends Error {
   operation: StorageOperation
@@ -182,6 +186,32 @@ export async function loadAiProvider(): Promise<AiProvider> {
 export async function saveAiProvider(provider: AiProvider): Promise<void> {
   await writeStorage({
     [AI_PROVIDER_STORAGE_KEY]: normalizeAiProvider(provider),
+  })
+}
+
+export function normalizeAppTheme(value: unknown): AppTheme {
+  return value === "dark" ? "dark" : "light"
+}
+
+export async function loadAppTheme(): Promise<AppTheme> {
+  const values = await readStorage(THEME_STORAGE_KEY)
+  return normalizeAppTheme(values[THEME_STORAGE_KEY])
+}
+
+export async function saveAppTheme(theme: AppTheme): Promise<void> {
+  await writeStorage({
+    [THEME_STORAGE_KEY]: normalizeAppTheme(theme),
+  })
+}
+
+export async function loadHidePopupHeader(): Promise<boolean> {
+  const values = await readStorage(HIDE_POPUP_HEADER_STORAGE_KEY)
+  return values[HIDE_POPUP_HEADER_STORAGE_KEY] === true
+}
+
+export async function saveHidePopupHeader(hidePopupHeader: boolean): Promise<void> {
+  await writeStorage({
+    [HIDE_POPUP_HEADER_STORAGE_KEY]: hidePopupHeader === true,
   })
 }
 

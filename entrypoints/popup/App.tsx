@@ -10,14 +10,52 @@ import {TypographySettings} from "@/components/popup/TypographySettings"
 import {PresetsSettings} from "@/components/popup/PresetsSettings"
 import {PopupFooter} from "@/components/popup/PopupFooter"
 import {useSiteSettings} from "@/hooks/useSiteSettings"
+import {
+    loadHidePopupHeader,
+    loadAppTheme,
+    saveHidePopupHeader,
+    saveAppTheme,
+    type AppTheme,
+} from "@/lib/settings-storage"
+import {useEffect, useState} from "react"
 
 function App() {
     const {state, actions} = useSiteSettings()
+    const [theme, setTheme] = useState<AppTheme>("light")
+    const [hidePopupHeader, setHidePopupHeader] = useState(false)
     const controlsDisabled = state.isLoading || state.isApplying
 
+    useEffect(() => {
+        void Promise.all([loadAppTheme(), loadHidePopupHeader()])
+            .then(([storedTheme, storedHidePopupHeader]) => {
+                setTheme(storedTheme)
+                setHidePopupHeader(storedHidePopupHeader)
+            })
+            .catch((error) => {
+                console.warn("[Readify] Could not load the saved appearance settings.", error)
+            })
+    }, [])
+
+    const handleThemeChange = (nextTheme: AppTheme) => {
+        setTheme(nextTheme)
+        void saveAppTheme(nextTheme).catch((error) => {
+            console.warn("[Readify] Could not save the theme.", error)
+        })
+    }
+
+    const handleHidePopupHeaderChange = (hide: boolean) => {
+        setHidePopupHeader(hide)
+        void saveHidePopupHeader(hide).catch((error) => {
+            console.warn("[Readify] Could not save the popup header setting.", error)
+        })
+    }
+
     return (
-        <div className="flex min-h-screen flex-col bg-background text-foreground">
-            <PopupHeader/>
+        <div
+            className={`${theme === "dark" ? "dark " : ""}flex min-h-screen flex-col bg-background text-foreground`}
+            style={{colorScheme: theme}}
+        >
+            {!hidePopupHeader && <PopupHeader/>}
 
             <main className="flex flex-1 flex-col space-y-4 px-4 pt-4">
                 <SiteStatusCard
@@ -60,7 +98,12 @@ function App() {
                             onLineHeightToggle={actions.typography.toggleLineHeight}
                             onLineHeightChange={actions.typography.updateLineHeight}
                         />
-                        <PresetsSettings />
+                        <PresetsSettings
+                            theme={theme}
+                            onThemeChange={handleThemeChange}
+                            hidePopupHeader={hidePopupHeader}
+                            onHidePopupHeaderChange={handleHidePopupHeaderChange}
+                        />
                     </Tabs>
 
                     <PopupFooter
