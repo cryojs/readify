@@ -7,10 +7,17 @@ import {
   normalizeSiteSettings,
   type SiteSettings,
 } from "@/lib/font-size"
+import {
+  normalizeAiProvider,
+  type AiProvider,
+} from "@/lib/ai"
 
 export type StorageOperation = "read" | "write"
 
 export const GEMINI_API_KEY_STORAGE_KEY = "readify.geminiApiKey"
+export const GROQ_API_KEY_STORAGE_KEY = "readify.groqApiKey"
+export const GROK_API_KEY_STORAGE_KEY = "readify.grokApiKey"
+export const AI_PROVIDER_STORAGE_KEY = "readify.aiProvider"
 export const SIMPLIFY_RESULT_STORAGE_KEY = "readify.simplifyResult"
 
 export class SettingsStorageError extends Error {
@@ -132,13 +139,75 @@ export async function loadGeminiApiKey(): Promise<string> {
   const values = await readStorage(GEMINI_API_KEY_STORAGE_KEY)
   const apiKey = values[GEMINI_API_KEY_STORAGE_KEY]
 
-  return typeof apiKey === "string" ? apiKey : ""
+  return typeof apiKey === "string" ? apiKey.trim() : ""
 }
 
 export async function saveGeminiApiKey(apiKey: string): Promise<void> {
   await writeStorage({
-    [GEMINI_API_KEY_STORAGE_KEY]: apiKey,
+    [GEMINI_API_KEY_STORAGE_KEY]: apiKey.trim(),
   })
+}
+
+export async function loadGroqApiKey(): Promise<string> {
+  const values = await readStorage(GROQ_API_KEY_STORAGE_KEY)
+  const apiKey = values[GROQ_API_KEY_STORAGE_KEY]
+
+  return typeof apiKey === "string" ? apiKey.trim() : ""
+}
+
+export async function saveGroqApiKey(apiKey: string): Promise<void> {
+  await writeStorage({
+    [GROQ_API_KEY_STORAGE_KEY]: apiKey.trim(),
+  })
+}
+
+export async function loadGrokApiKey(): Promise<string> {
+  const values = await readStorage(GROK_API_KEY_STORAGE_KEY)
+  const apiKey = values[GROK_API_KEY_STORAGE_KEY]
+
+  return typeof apiKey === "string" ? apiKey.trim() : ""
+}
+
+export async function saveGrokApiKey(apiKey: string): Promise<void> {
+  await writeStorage({
+    [GROK_API_KEY_STORAGE_KEY]: apiKey.trim(),
+  })
+}
+
+export async function loadAiProvider(): Promise<AiProvider> {
+  const values = await readStorage(AI_PROVIDER_STORAGE_KEY)
+  return normalizeAiProvider(values[AI_PROVIDER_STORAGE_KEY])
+}
+
+export async function saveAiProvider(provider: AiProvider): Promise<void> {
+  await writeStorage({
+    [AI_PROVIDER_STORAGE_KEY]: normalizeAiProvider(provider),
+  })
+}
+
+export async function loadAiApiKey(provider: AiProvider): Promise<string> {
+  if (provider === "groq") {
+    return loadGroqApiKey()
+  }
+
+  return provider === "grok" ? loadGrokApiKey() : loadGeminiApiKey()
+}
+
+export async function saveAiApiKey(
+  provider: AiProvider,
+  apiKey: string,
+): Promise<void> {
+  if (provider === "groq") {
+    await saveGroqApiKey(apiKey)
+    return
+  }
+
+  if (provider === "grok") {
+    await saveGrokApiKey(apiKey)
+    return
+  }
+
+  await saveGeminiApiKey(apiKey)
 }
 
 export async function loadSimplifyResult(): Promise<string | null> {

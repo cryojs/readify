@@ -7,8 +7,21 @@ export default defineConfig({
   manifest: {
     name: "Readify",
     description: "Customize your reading experience on any website",
-    permissions: ["storage", "tabs"],
-    host_permissions: ["https://generativelanguage.googleapis.com/*"],
+    permissions: ["storage", "tabs", "contextMenus"],
+    commands: {
+      "simplify-selection": {
+        description: "Simplify selected text on the current page",
+        suggested_key: {
+          default: "Alt+Shift+S",
+          mac: "Alt+Shift+S",
+        },
+      },
+    },
+    host_permissions: [
+      "https://generativelanguage.googleapis.com/*",
+      "https://api.groq.com/*",
+      "https://api.x.ai/*",
+    ],
     web_accessible_resources: [
       {
         resources: ["assets/*.woff2", "assets/*.woff"],

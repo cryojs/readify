@@ -25,10 +25,16 @@ import {
 } from "@/components/ui/select"
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip"
 import {Label} from "@/components/ui/label"
-import {buildAiInput, generateGeminiResponse, type AiMode} from "@/lib/ai"
+import {
+    buildAiInput,
+    generateAiResponse,
+    getAiProviderDefinition,
+    type AiMode,
+} from "@/lib/ai"
 import {
     clearSimplifyResult,
-    loadGeminiApiKey,
+    loadAiApiKey,
+    loadAiProvider,
     loadSimplifyResult,
     saveSimplifyResult,
 } from "@/lib/settings-storage"
@@ -71,8 +77,9 @@ function SimplifyInfo() {
                 <div className="space-y-1.5">
                     <p className="font-medium">How to use</p>
                     <p>
-                        <span className="font-medium">Highlighted text:</span>{" "}
-                        highlight text on a page, then choose your desired action.
+                        <span className="font-medium">Selected text:</span>{" "}
+                        highlight text, then press Alt + Shift + S or choose
+                        “Simplify selected text” from the browser context menu.
                     </p>
                     <p>
                         <span className="font-medium">Entire page:</span>{" "}
@@ -131,23 +138,29 @@ export function SimplifySettings({getPageText}: SimplifySettingsProps) {
         setIsGenerating(true)
 
         try {
-            const apiKey = await loadGeminiApiKey()
+            const provider = await loadAiProvider()
+            const providerDefinition = getAiProviderDefinition(provider)
+            const apiKey = await loadAiApiKey(provider)
 
             if (!apiKey.trim()) {
-                setResult("Add your Gemini API key in Presets before generating a result.")
+                setResult(
+                    "Add your " +
+                    providerDefinition.label +
+                    " API key in Presets before generating a result.",
+                )
                 return
             }
 
             const pageText = await getPageText()
             const prompt = buildAiInput(selectedMode, question, pageText)
-            const generatedResult = await generateGeminiResponse(apiKey, prompt)
+            const generatedResult = await generateAiResponse(provider, apiKey, prompt)
             setResult(generatedResult)
             setIsCopied(false)
             void saveSimplifyResult(generatedResult).catch((error) => {
                 console.warn("[Readify] Could not save the generated result.", error)
             })
         } catch (error) {
-            console.warn("[Readify] Could not generate a Gemini response.", error)
+            console.warn("[Readify] Could not generate an AI response.", error)
             setResult(
                 error instanceof Error
                     ? `Could not generate a response: ${error.message}`
