@@ -15,10 +15,14 @@ import {
   loadStoredSiteSettings,
 } from "@/lib/settings-storage"
 import {
+  OPEN_FOLLOW_UP_MESSAGE,
+  FOLLOW_UP_SELECTION_REQUEST_MESSAGE,
   SIMPLIFY_SELECTION_REQUEST_MESSAGE,
   isGetSelectedTextMessage,
+  isOpenFollowUpMessage,
   isReplaceSelectedTextMessage,
   isSimplifyStatusMessage,
+  type FollowUpSelectionResponse,
   type ReplaceSelectedTextResponse,
   type SelectedTextAction,
   type SelectedTextResponse,
@@ -63,6 +67,9 @@ let applyScheduled = false
 let savedSelection: SavedSelection | null = null
 let simplifyStatusHost: HTMLElement | null = null
 let simplifyStatusTimer: number | null = null
+let followUpHost: HTMLElement | null = null
+let followUpSelection: SavedSelection | null = null
+let followUpRequestToken = 0
 let nextSelectionId = 0
 let preserveSelectionUntil = 0
 const selectionTargets = new Map<number, SavedSelection>()
@@ -363,6 +370,429 @@ function showSimplifyStatus(
   }
 }
 
+type FollowUpPanelElements = {
+  host: HTMLElement
+  heading: HTMLElement
+  input: HTMLTextAreaElement
+  submit: HTMLButtonElement
+  status: HTMLElement
+  answer: HTMLElement
+  copy: HTMLButtonElement
+}
+
+function createFollowUpIcon(name: "copy" | "send"): SVGSVGElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+  svg.setAttribute("viewBox", "0 0 24 24")
+  svg.setAttribute("aria-hidden", "true")
+  svg.setAttribute("focusable", "false")
+  svg.classList.add("button-icon")
+
+  if (name === "copy") {
+    const back = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    back.setAttribute("d", "M9 9h10v10H9z")
+    const front = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    front.setAttribute("d", "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1")
+    svg.append(back, front)
+  } else {
+    const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    arrow.setAttribute("d", "m22 2-7 20-4-9-9-4Z")
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    line.setAttribute("d", "M22 2 11 13")
+    svg.append(arrow, line)
+  }
+
+  return svg
+}
+
+function getFollowUpPanelElements(): FollowUpPanelElements | null {
+  if (!followUpHost || !followUpHost.isConnected) {
+    followUpHost = document.createElement("div")
+    followUpHost.dataset.readifyUi = "true"
+    followUpHost.style.position = "fixed"
+    followUpHost.style.top = "16px"
+    followUpHost.style.right = "16px"
+    followUpHost.style.zIndex = "2147483647"
+    followUpHost.style.pointerEvents = "none"
+
+    const shadowRoot = followUpHost.attachShadow({mode: "open"})
+    const style = document.createElement("style")
+    style.textContent = `
+      :host {
+        --readify-background: oklch(1 0 0);
+        --readify-foreground: oklch(0.145 0 0);
+        --readify-card: oklch(1 0 0);
+        --readify-card-foreground: oklch(0.145 0 0);
+        --readify-muted: oklch(0.97 0 0);
+        --readify-muted-foreground: oklch(0.556 0 0);
+        --readify-border: oklch(0.922 0 0);
+        --readify-input: oklch(0.922 0 0);
+        --readify-primary: oklch(0.205 0 0);
+        --readify-primary-foreground: oklch(0.985 0 0);
+        --readify-ring: oklch(0.708 0 0);
+        all: initial;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :host {
+          --readify-background: oklch(0.145 0 0);
+          --readify-foreground: oklch(0.985 0 0);
+          --readify-card: oklch(0.205 0 0);
+          --readify-card-foreground: oklch(0.985 0 0);
+          --readify-muted: oklch(0.269 0 0);
+          --readify-muted-foreground: oklch(0.708 0 0);
+          --readify-border: oklch(1 0 0 / 10%);
+          --readify-input: oklch(1 0 0 / 15%);
+          --readify-primary: oklch(0.922 0 0);
+          --readify-primary-foreground: oklch(0.205 0 0);
+          --readify-ring: oklch(0.556 0 0);
+          color-scheme: dark;
+        }
+      }
+      .panel {
+        background: var(--readify-card);
+        border: 1px solid var(--readify-border);
+        border-radius: 0.625rem;
+        box-shadow: 0 0 0 1px color-mix(in oklch, var(--readify-foreground) 10%, transparent), 0 10px 30px rgb(0 0 0 / 0.14);
+        box-sizing: border-box;
+        color: var(--readify-card-foreground);
+        display: flex;
+        flex-direction: column;
+        font: 12px/1.5 "Inter Variable", Inter, system-ui, sans-serif;
+        gap: 10px;
+        padding: 12px;
+        pointer-events: auto;
+        width: min(420px, calc(100vw - 32px));
+      }
+      .header {
+        align-items: center;
+        display: flex;
+        gap: 8px;
+        justify-content: space-between;
+      }
+      .heading { color: var(--readify-card-foreground); font-weight: 500; }
+      button {
+        align-items: center;
+        background: var(--readify-background);
+        border: 1px solid var(--readify-border);
+        border-radius: 6px;
+        box-sizing: border-box;
+        color: var(--readify-foreground);
+        cursor: pointer;
+        display: inline-flex;
+        font: 500 12px/1.4 "Inter Variable", Inter, system-ui, sans-serif;
+        gap: 6px;
+        height: 26px;
+        justify-content: center;
+        min-width: 76px;
+        padding: 0 12px;
+        transition: background-color 120ms ease, border-color 120ms ease;
+      }
+      button:hover:not(:disabled) { background: var(--readify-muted); }
+      button:focus-visible {
+        outline: 2px solid color-mix(in oklch, var(--readify-ring) 60%, transparent);
+        outline-offset: 1px;
+      }
+      button:disabled { cursor: default; opacity: 0.5; }
+      .button-icon {
+        fill: none;
+        flex: 0 0 auto;
+        height: 14px;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2;
+        width: 14px;
+      }
+      .close {
+        background: transparent;
+        border: 0;
+        color: var(--readify-muted-foreground);
+        font-size: 18px;
+        height: 24px;
+        line-height: 1;
+        min-width: 24px;
+        padding: 0;
+      }
+      .close:hover { background: var(--readify-muted); color: var(--readify-foreground); }
+      textarea {
+        background: color-mix(in oklch, var(--readify-input) 20%, transparent);
+        border: 1px solid var(--readify-input);
+        border-radius: 6px;
+        box-sizing: border-box;
+        color: var(--readify-foreground);
+        font: 400 12px/1.5 "Inter Variable", Inter, system-ui, sans-serif;
+        min-height: 64px;
+        outline: none;
+        padding: 8px;
+        resize: vertical;
+        width: 100%;
+      }
+      textarea:focus {
+        border-color: var(--readify-ring);
+        box-shadow: 0 0 0 2px color-mix(in oklch, var(--readify-ring) 30%, transparent);
+      }
+      textarea::placeholder { color: var(--readify-muted-foreground); }
+      .footer {
+        align-items: center;
+        display: flex;
+        gap: 8px;
+        justify-content: space-between;
+      }
+      .status { color: var(--readify-muted-foreground); font-size: 11px; }
+      .status[data-tone="error"] { color: var(--readify-destructive, oklch(0.577 0.245 27.325)); }
+      .primary {
+        background: var(--readify-primary);
+        border-color: var(--readify-primary);
+        color: var(--readify-primary-foreground);
+      }
+      .primary:hover:not(:disabled) { background: color-mix(in oklch, var(--readify-primary) 80%, transparent); }
+      .secondary { min-width: 82px; }
+      .answer {
+        background: color-mix(in oklch, var(--readify-muted) 45%, transparent);
+        border: 1px solid var(--readify-border);
+        border-radius: 6px;
+        color: var(--readify-card-foreground);
+        font-size: 12px;
+        max-height: 260px;
+        overflow: auto;
+        padding: 9px;
+        white-space: pre-wrap;
+      }
+      [hidden] { display: none !important; }
+    `
+
+    const panel = document.createElement("section")
+    panel.className = "panel"
+    panel.setAttribute("role", "dialog")
+    panel.setAttribute("aria-label", "Ask about selected text")
+
+    const header = document.createElement("div")
+    header.className = "header"
+
+    const heading = document.createElement("div")
+    heading.className = "heading"
+    heading.textContent = "Ask about selected text"
+
+    const close = document.createElement("button")
+    close.className = "close"
+    close.type = "button"
+    close.setAttribute("aria-label", "Close follow-up")
+    close.textContent = "×"
+    close.addEventListener("click", closeFollowUpPanel)
+    header.append(heading, close)
+
+    const input = document.createElement("textarea")
+    input.rows = 2
+    input.placeholder = "Ask a question or request an explanation…"
+    input.setAttribute("aria-label", "Follow-up question")
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault()
+        closeFollowUpPanel()
+      } else if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault()
+        void submitFollowUp()
+      }
+    })
+
+    const answer = document.createElement("div")
+    answer.className = "answer"
+    answer.hidden = true
+
+    const footer = document.createElement("div")
+    footer.className = "footer"
+
+    const status = document.createElement("div")
+    status.className = "status"
+    status.setAttribute("aria-live", "polite")
+
+    const actions = document.createElement("div")
+    actions.style.display = "flex"
+    actions.style.gap = "6px"
+
+    const copy = document.createElement("button")
+    copy.className = "secondary"
+    copy.type = "button"
+    copy.append(createFollowUpIcon("copy"), document.createTextNode("Copy"))
+    copy.hidden = true
+    copy.addEventListener("click", () => {
+      void copyFollowUpAnswer()
+    })
+
+    const submit = document.createElement("button")
+    submit.className = "primary"
+    submit.type = "button"
+    submit.append(createFollowUpIcon("send"), document.createTextNode("Ask"))
+    submit.addEventListener("click", () => {
+      void submitFollowUp()
+    })
+
+    actions.append(copy, submit)
+    footer.append(status, actions)
+    panel.append(header, input, answer, footer)
+    shadowRoot.append(style, panel)
+    ;(document.body ?? document.documentElement).appendChild(followUpHost)
+  }
+
+  const shadowRoot = followUpHost.shadowRoot
+  const heading = shadowRoot?.querySelector<HTMLElement>(".heading")
+  const input = shadowRoot?.querySelector<HTMLTextAreaElement>("textarea")
+  const submit = shadowRoot?.querySelector<HTMLButtonElement>(".primary")
+  const status = shadowRoot?.querySelector<HTMLElement>(".status")
+  const answer = shadowRoot?.querySelector<HTMLElement>(".answer")
+  const copy = shadowRoot?.querySelector<HTMLButtonElement>(".secondary")
+
+  if (!heading || !input || !submit || !status || !answer || !copy) {
+    return null
+  }
+
+  return {
+    host: followUpHost,
+    heading,
+    input,
+    submit,
+    status,
+    answer,
+    copy,
+  }
+}
+
+function closeFollowUpPanel() {
+  followUpRequestToken += 1
+  followUpSelection = null
+
+  if (followUpHost) {
+    followUpHost.remove()
+  }
+
+  followUpHost = null
+}
+
+function showFollowUpComposer(selection: SavedSelection) {
+  followUpRequestToken += 1
+  followUpSelection = {
+    range: selection.range.cloneRange(),
+    text: selection.text,
+  }
+
+  const elements = getFollowUpPanelElements()
+
+  if (!elements) {
+    return
+  }
+
+  elements.heading.textContent = "Ask about selected text"
+  elements.input.value = ""
+  elements.input.disabled = false
+  elements.submit.disabled = false
+  elements.status.dataset.tone = ""
+  elements.status.textContent = "Press Enter to ask, or Shift + Enter for a new line."
+  elements.answer.textContent = ""
+  elements.answer.hidden = true
+  elements.copy.hidden = true
+  elements.input.focus()
+}
+
+function showFollowUpError(
+  elements: FollowUpPanelElements,
+  message: string,
+) {
+  elements.input.disabled = false
+  elements.submit.disabled = false
+  elements.status.dataset.tone = "error"
+  elements.status.textContent = message
+  elements.input.focus()
+}
+
+async function submitFollowUp() {
+  const selection = followUpSelection
+
+  if (!followUpHost?.isConnected || !selection) {
+    return
+  }
+
+  const elements = getFollowUpPanelElements()
+
+  if (!elements || elements.input.disabled) {
+    return
+  }
+
+  const question = elements.input.value.trim()
+
+  if (!question) {
+    showFollowUpError(elements, "Write a question before sending it.")
+    return
+  }
+
+  const requestToken = ++followUpRequestToken
+  elements.input.disabled = true
+  elements.submit.disabled = true
+  elements.copy.hidden = true
+  elements.answer.hidden = true
+  elements.status.dataset.tone = ""
+  elements.status.textContent = "Thinking…"
+
+  try {
+    const response = (await browser.runtime.sendMessage({
+      type: FOLLOW_UP_SELECTION_REQUEST_MESSAGE,
+      selectedText: selection.text,
+      question,
+    })) as FollowUpSelectionResponse | undefined
+
+    if (requestToken !== followUpRequestToken || followUpHost !== elements.host) {
+      return
+    }
+
+    if (!response?.accepted || !response.answer?.trim()) {
+      showFollowUpError(
+        elements,
+        response?.error ?? "Readify did not return an answer. Please try again.",
+      )
+      return
+    }
+
+    elements.answer.textContent = response.answer.trim()
+    elements.answer.hidden = false
+    elements.copy.hidden = false
+    elements.input.value = ""
+    elements.input.disabled = false
+    elements.submit.disabled = false
+    elements.status.dataset.tone = ""
+    elements.status.textContent = "Ask another question about the same text, or close this panel."
+    elements.input.focus()
+  } catch (error) {
+    if (requestToken !== followUpRequestToken || followUpHost !== elements.host) {
+      return
+    }
+
+    console.warn("[Readify] Could not send the follow-up question.", error)
+    showFollowUpError(elements, "Could not send the follow-up. Please try again.")
+  }
+}
+
+async function copyFollowUpAnswer() {
+  if (!followUpHost?.isConnected) {
+    return
+  }
+
+  const elements = getFollowUpPanelElements()
+  const answer = elements?.answer.textContent?.trim()
+
+  if (!elements || !answer) {
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(answer)
+    elements.status.dataset.tone = ""
+    elements.status.textContent = "Answer copied."
+  } catch (error) {
+    console.warn("[Readify] Could not copy the follow-up answer.", error)
+    elements.status.dataset.tone = "error"
+    elements.status.textContent = "Could not copy the answer."
+  }
+}
+
 function cleanGeneratedText(text: string): string {
   const normalized = text.replace(/\r\n?/g, "\n").trim()
 
@@ -467,21 +897,12 @@ export default defineContentScript({
       }
 
       const key = event.key.toLowerCase()
-      let action: SelectedTextAction
-
-      if (key === "s") {
-        action = "simplify"
-      } else if (key === "h") {
-        action = "shorten"
-      } else {
-        return
-      }
-
       const target = event.target
 
       if (
         target instanceof HTMLElement &&
-        (target.isContentEditable ||
+        (target.closest("[data-readify-ui]") ||
+          target.isContentEditable ||
           target.tagName === "INPUT" ||
           target.tagName === "TEXTAREA" ||
           target.tagName === "SELECT")
@@ -492,6 +913,22 @@ export default defineContentScript({
       const selection = getSavedSelection() ?? captureSelection()
 
       if (!selection) {
+        return
+      }
+
+      if (key === "a") {
+        event.preventDefault()
+        showFollowUpComposer(selection)
+        return
+      }
+
+      let action: SelectedTextAction
+
+      if (key === "s") {
+        action = "simplify"
+      } else if (key === "h") {
+        action = "shorten"
+      } else {
         return
       }
 
@@ -559,6 +996,23 @@ export default defineContentScript({
       if (isSiteSettingsMessage(message)) {
         setActiveSettings(message.settings)
         return Promise.resolve({ applied: true })
+      }
+
+      if (isOpenFollowUpMessage(message)) {
+        if (followUpHost?.isConnected) {
+          return Promise.resolve({accepted: true})
+        }
+
+        const selection = getSavedSelection() ?? captureSelection()
+
+        if (!selection) {
+          const error = "Select some text before asking a follow-up."
+          showSimplifyStatus(error, "error")
+          return Promise.resolve({accepted: false, error})
+        }
+
+        showFollowUpComposer(selection)
+        return Promise.resolve({accepted: true})
       }
 
       if (isGetSelectedTextMessage(message)) {

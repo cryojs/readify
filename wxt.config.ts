@@ -23,6 +23,13 @@ export default defineConfig({
           mac: "Alt+Shift+H",
         },
       },
+      "ask-followup": {
+        description: "Ask a follow-up about selected text",
+        suggested_key: {
+          default: "Alt+Shift+A",
+          mac: "Alt+Shift+A",
+        },
+      },
     },
     host_permissions: [
       "https://generativelanguage.googleapis.com/*",

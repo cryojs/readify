@@ -1,6 +1,8 @@
 export const GET_SELECTED_TEXT_MESSAGE = "GET_SELECTED_TEXT"
 export const REPLACE_SELECTED_TEXT_MESSAGE = "REPLACE_SELECTED_TEXT"
 export const SIMPLIFY_SELECTION_REQUEST_MESSAGE = "SIMPLIFY_SELECTION_REQUEST"
+export const OPEN_FOLLOW_UP_MESSAGE = "OPEN_FOLLOW_UP"
+export const FOLLOW_UP_SELECTION_REQUEST_MESSAGE = "FOLLOW_UP_SELECTION_REQUEST"
 export const SIMPLIFY_STATUS_MESSAGE = "SIMPLIFY_STATUS"
 
 export type SelectedTextAction = "simplify" | "shorten"
@@ -21,6 +23,16 @@ export type SimplifySelectionRequestMessage = {
   action?: SelectedTextAction
 }
 
+export type OpenFollowUpMessage = {
+  type: typeof OPEN_FOLLOW_UP_MESSAGE
+}
+
+export type FollowUpSelectionRequestMessage = {
+  type: typeof FOLLOW_UP_SELECTION_REQUEST_MESSAGE
+  selectedText: string
+  question: string
+}
+
 export type SimplifyStatusMessage = {
   type: typeof SIMPLIFY_STATUS_MESSAGE
   status: "loading" | "success" | "error"
@@ -39,6 +51,12 @@ export type ReplaceSelectedTextResponse = {
 
 export type SimplifySelectionResponse = {
   accepted: boolean
+  error?: string
+}
+
+export type FollowUpSelectionResponse = {
+  accepted: boolean
+  answer?: string
   error?: string
 }
 
@@ -65,6 +83,22 @@ export function isSimplifySelectionRequestMessage(
   return (
     isMessageOfType(message, SIMPLIFY_SELECTION_REQUEST_MESSAGE) &&
     isOptionalSelectedTextAction((message as { action?: unknown }).action)
+  )
+}
+
+export function isOpenFollowUpMessage(
+  message: unknown,
+): message is OpenFollowUpMessage {
+  return isMessageOfType(message, OPEN_FOLLOW_UP_MESSAGE)
+}
+
+export function isFollowUpSelectionRequestMessage(
+  message: unknown,
+): message is FollowUpSelectionRequestMessage {
+  return (
+    isMessageOfType(message, FOLLOW_UP_SELECTION_REQUEST_MESSAGE) &&
+    typeof (message as { selectedText?: unknown }).selectedText === "string" &&
+    typeof (message as { question?: unknown }).question === "string"
   )
 }
 

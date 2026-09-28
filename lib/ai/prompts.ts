@@ -22,6 +22,13 @@ const SELECTED_TEXT_SHORTEN_INSTRUCTION = [
     "Preserve paragraph breaks when they are present.",
 ].join(" ")
 
+const SELECTED_TEXT_FOLLOW_UP_INSTRUCTION = [
+    "Answer the user's follow-up question using the selected text as context.",
+    "Explain clearly and directly, while preserving factual accuracy.",
+    "If the selected text does not contain enough information, say so instead of inventing details.",
+    "Return only the answer as plain text. Do not include a preamble, quotation marks around the whole response, or Markdown formatting.",
+].join(" ")
+
 const AI_RESPONSE_FORMAT_INSTRUCTION =
     "Format the response as Markdown. Start directly with the answer and do not add an introduction such as \"Here is what you asked for:\"."
 
@@ -39,4 +46,11 @@ export function buildSelectedTextSimplifyInput(selectedText: string): string {
 
 export function buildSelectedTextShortenInput(selectedText: string): string {
     return `${SELECTED_TEXT_SHORTEN_INSTRUCTION}\n\nSelected text:\n${selectedText}`
+}
+
+export function buildSelectedTextFollowUpInput(
+    selectedText: string,
+    question: string,
+): string {
+    return `${SELECTED_TEXT_FOLLOW_UP_INSTRUCTION}\n\nSelected text:\n${selectedText}\n\nFollow-up question:\n${question}`
 }
