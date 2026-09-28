@@ -1,5 +1,6 @@
 import {
   buildSelectedTextSimplifyInput,
+  buildSelectedTextShortenInput,
   generateAiResponse,
   getAiProviderDefinition,
 } from "@/lib/ai"
@@ -13,19 +14,25 @@ import {
   SIMPLIFY_STATUS_MESSAGE,
   isSimplifySelectionRequestMessage,
   type ReplaceSelectedTextResponse,
+  type SelectedTextAction,
   type SelectedTextResponse,
 } from "@/lib/simplify"
 
 const SIMPLIFY_SELECTION_COMMAND = "simplify-selection"
+const SHORTEN_SELECTION_COMMAND = "shorten-selection"
 const SIMPLIFY_SELECTION_MENU_ID = "readify-simplify-selection"
+const SHORTEN_SELECTION_MENU_ID = "readify-shorten-selection"
 const activeSimplifyTabs = new Set<number>()
+let contextMenuSetup: Promise<void> | null = null
 
-function getErrorMessage(error: unknown): string {
+function getErrorMessage(error: unknown, action: SelectedTextAction): string {
   if (error instanceof Error && error.message) {
     return error.message
   }
 
-  return "Readify could not simplify the selected text. Please try again."
+  return action === "shorten"
+    ? "Readify could not shorten the selected text. Please try again."
+    : "Readify could not simplify the selected text. Please try again."
 }
 
 async function sendStatus(
@@ -40,7 +47,10 @@ async function sendStatus(
   })
 }
 
-async function simplifySelectionInTab(tabId: number) {
+async function simplifySelectionInTab(
+  tabId: number,
+  action: SelectedTextAction = "simplify",
+) {
   if (activeSimplifyTabs.has(tabId)) {
     return
   }
@@ -54,10 +64,20 @@ async function simplifySelectionInTab(tabId: number) {
     const selectedText = selectionResponse?.text ?? ""
 
     if (!selectedText.trim() || typeof selectionResponse?.selectionId !== "number") {
-      throw new Error("Select some text before simplifying it.")
+      throw new Error(
+        "Select some text before " +
+          (action === "shorten" ? "shortening" : "simplifying") +
+          " it.",
+      )
     }
 
-    await sendStatus(tabId, "loading")
+    await sendStatus(
+      tabId,
+      "loading",
+      action === "shorten"
+        ? "Shortening selected text…"
+        : "Simplifying selected text…",
+    )
 
     const provider = await loadAiProvider()
     const providerDefinition = getAiProviderDefinition(provider)
@@ -66,17 +86,22 @@ async function simplifySelectionInTab(tabId: number) {
     if (!apiKey.trim()) {
       throw new Error(
         "Add your " +
-          providerDefinition.label +
-          " API key in Presets before simplifying text.",
+        providerDefinition.label +
+        " API key in Presets before " +
+        (action === "shorten" ? "shortening" : "simplifying") +
+        " text.",
       )
     }
 
-    const prompt = buildSelectedTextSimplifyInput(selectedText)
-    const simplifiedText = await generateAiResponse(provider, apiKey, prompt)
+    const prompt = action === "shorten"
+      ? buildSelectedTextShortenInput(selectedText)
+      : buildSelectedTextSimplifyInput(selectedText)
+    const generatedText = await generateAiResponse(provider, apiKey, prompt)
     const replacementResponse = (await browser.tabs.sendMessage(tabId, {
       type: REPLACE_SELECTED_TEXT_MESSAGE,
       selectionId: selectionResponse.selectionId,
-      text: simplifiedText,
+      text: generatedText,
+      action,
     })) as ReplaceSelectedTextResponse | undefined
 
     if (!replacementResponse?.replaced) {
@@ -86,7 +111,7 @@ async function simplifySelectionInTab(tabId: number) {
       )
     }
   } catch (error) {
-    const message = getErrorMessage(error)
+    const message = getErrorMessage(error, action)
 
     try {
       await sendStatus(tabId, "error", message)
@@ -99,18 +124,34 @@ async function simplifySelectionInTab(tabId: number) {
 }
 
 function createSimplifyContextMenu() {
-  void browser.contextMenus.removeAll()
-    .then(() => browser.contextMenus.create({
-      id: SIMPLIFY_SELECTION_MENU_ID,
-      title: "Simplify selected text",
-      contexts: ["selection"],
-    }))
+  if (contextMenuSetup) {
+    return
+  }
+
+  contextMenuSetup = browser.contextMenus.removeAll()
+    .then(async () => {
+      await browser.contextMenus.create({
+        id: SIMPLIFY_SELECTION_MENU_ID,
+        title: "Simplify selected text",
+        contexts: ["selection"],
+      })
+      await browser.contextMenus.create({
+        id: SHORTEN_SELECTION_MENU_ID,
+        title: "Shorten selected text",
+        contexts: ["selection"],
+      })
+    })
     .catch((error) => {
       console.warn("[Readify] Could not create the simplify context menu.", error)
+    })
+    .finally(() => {
+      contextMenuSetup = null
     })
 }
 
 export default defineBackground(() => {
+  createSimplifyContextMenu()
+
   browser.runtime.onInstalled.addListener(() => {
     createSimplifyContextMenu()
   })
@@ -120,19 +161,31 @@ export default defineBackground(() => {
   })
 
   browser.contextMenus.onClicked.addListener(async (info, tab) => {
-    if (info.menuItemId !== SIMPLIFY_SELECTION_MENU_ID) {
+    const action = info.menuItemId === SIMPLIFY_SELECTION_MENU_ID
+      ? "simplify"
+      : info.menuItemId === SHORTEN_SELECTION_MENU_ID
+        ? "shorten"
+        : null
+
+    if (!action) {
       return
     }
 
     const tabId = tab?.id
 
     if (typeof tabId === "number") {
-      await simplifySelectionInTab(tabId)
+      await simplifySelectionInTab(tabId, action)
     }
   })
 
   browser.commands.onCommand.addListener(async (command) => {
-    if (command !== SIMPLIFY_SELECTION_COMMAND) {
+    const action = command === SIMPLIFY_SELECTION_COMMAND
+      ? "simplify"
+      : command === SHORTEN_SELECTION_COMMAND
+        ? "shorten"
+        : null
+
+    if (!action) {
       return
     }
 
@@ -141,7 +194,7 @@ export default defineBackground(() => {
       lastFocusedWindow: true,
     }).then(([tab]) => {
       if (typeof tab?.id === "number") {
-        return simplifySelectionInTab(tab.id)
+        return simplifySelectionInTab(tab.id, action)
       }
 
       return undefined
@@ -164,6 +217,7 @@ export default defineBackground(() => {
       })
     }
 
-    return simplifySelectionInTab(tabId).then(() => ({accepted: true}))
+    return simplifySelectionInTab(tabId, message.action ?? "simplify")
+      .then(() => ({accepted: true}))
   })
 })

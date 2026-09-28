@@ -16,6 +16,13 @@ export default defineConfig({
           mac: "Alt+Shift+S",
         },
       },
+      "shorten-selection": {
+        description: "Shorten selected text on the current page",
+        suggested_key: {
+          default: "Alt+Shift+H",
+          mac: "Alt+Shift+H",
+        },
+      },
     },
     host_permissions: [
       "https://generativelanguage.googleapis.com/*",

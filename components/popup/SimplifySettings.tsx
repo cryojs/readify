@@ -78,8 +78,9 @@ function SimplifyInfo() {
                     <p className="font-medium">How to use</p>
                     <p>
                         <span className="font-medium">Selected text:</span>{" "}
-                        highlight text, then press Alt + Shift + S or choose
-                        “Simplify selected text” from the browser context menu.
+                        highlight text, then press Alt + Shift + S to simplify
+                        or Alt + Shift + H to shorten, or choose either action
+                        from the browser context menu.
                     </p>
                     <p>
                         <span className="font-medium">Entire page:</span>{" "}
@@ -92,6 +93,10 @@ function SimplifyInfo() {
                     <div className="flex items-center justify-between gap-3">
                         <span>Simplify selected text</span>
                         <Kbd>Alt + Shift + S</Kbd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                        <span>Shorten selected text</span>
+                        <Kbd>Alt + Shift + H</Kbd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                         <span>Ask follow-up</span>

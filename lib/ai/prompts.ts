@@ -14,6 +14,14 @@ const SELECTED_TEXT_SIMPLIFY_INSTRUCTION = [
     "Preserve paragraph breaks when they are present.",
 ].join(" ")
 
+const SELECTED_TEXT_SHORTEN_INSTRUCTION = [
+    "Shorten the selected text while preserving its meaning and all essential information.",
+    "Remove repetition and unnecessary wording without adding explanations or new information.",
+    "Keep names, numbers, dates, and important details accurate.",
+    "Return only the shortened replacement text as plain text. Do not include a preamble, quotation marks around the whole response, or Markdown formatting.",
+    "Preserve paragraph breaks when they are present.",
+].join(" ")
+
 const AI_RESPONSE_FORMAT_INSTRUCTION =
     "Format the response as Markdown. Start directly with the answer and do not add an introduction such as \"Here is what you asked for:\"."
 
@@ -27,4 +35,8 @@ export function buildAiInput(mode: AiMode, question: string, pageText: string) {
 
 export function buildSelectedTextSimplifyInput(selectedText: string): string {
     return `${SELECTED_TEXT_SIMPLIFY_INSTRUCTION}\n\nSelected text:\n${selectedText}`
+}
+
+export function buildSelectedTextShortenInput(selectedText: string): string {
+    return `${SELECTED_TEXT_SHORTEN_INSTRUCTION}\n\nSelected text:\n${selectedText}`
 }

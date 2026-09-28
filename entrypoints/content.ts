@@ -20,6 +20,7 @@ import {
   isReplaceSelectedTextMessage,
   isSimplifyStatusMessage,
   type ReplaceSelectedTextResponse,
+  type SelectedTextAction,
   type SelectedTextResponse,
 } from "@/lib/simplify"
 
@@ -461,12 +462,18 @@ export default defineContentScript({
       true,
     )
     document.addEventListener("keydown", (event) => {
-      if (
-        event.repeat ||
-        !event.altKey ||
-        !event.shiftKey ||
-        event.key.toLowerCase() !== "s"
-      ) {
+      if (event.repeat || !event.altKey || !event.shiftKey) {
+        return
+      }
+
+      const key = event.key.toLowerCase()
+      let action: SelectedTextAction
+
+      if (key === "s") {
+        action = "simplify"
+      } else if (key === "h") {
+        action = "shorten"
+      } else {
         return
       }
 
@@ -491,16 +498,25 @@ export default defineContentScript({
       event.preventDefault()
       void browser.runtime.sendMessage({
         type: SIMPLIFY_SELECTION_REQUEST_MESSAGE,
+        action,
       }).then((response) => {
         if (response && response.accepted === false) {
           showSimplifyStatus(
-            response.error ?? "Could not simplify the selection.",
+            response.error ??
+              (action === "shorten"
+                ? "Could not shorten the selection."
+                : "Could not simplify the selection."),
             "error",
           )
         }
       }).catch((error) => {
-        console.warn("[Readify] Could not start selected-text simplify.", error)
-        showSimplifyStatus("Could not simplify the selection.", "error")
+        console.warn("[Readify] Could not start selected-text action.", error)
+        showSimplifyStatus(
+          action === "shorten"
+            ? "Could not shorten the selection."
+            : "Could not simplify the selection.",
+          "error",
+        )
       })
     })
 
@@ -558,9 +574,15 @@ export default defineContentScript({
         const response = replaceSavedSelection(message.selectionId, message.text)
 
         if (response.replaced) {
-          showSimplifyStatus("Text simplified.", "success")
+          showSimplifyStatus(
+            message.action === "shorten" ? "Text shortened." : "Text simplified.",
+            "success",
+          )
         } else {
-          showSimplifyStatus(response.error ?? "Could not simplify the selection.", "error")
+          showSimplifyStatus(
+            response.error ?? "Could not update the selected text.",
+            "error",
+          )
         }
 
         return Promise.resolve(response)
@@ -570,10 +592,10 @@ export default defineContentScript({
         showSimplifyStatus(
           message.message ??
             (message.status === "loading"
-              ? "Simplifying selected text…"
+              ? "Updating selected text…"
               : message.status === "success"
-                ? "Text simplified."
-                : "Could not simplify the selection."),
+                ? "Selected text updated."
+                : "Could not update the selected text."),
           message.status,
         )
         return Promise.resolve({received: true})

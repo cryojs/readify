@@ -3,6 +3,8 @@ export const REPLACE_SELECTED_TEXT_MESSAGE = "REPLACE_SELECTED_TEXT"
 export const SIMPLIFY_SELECTION_REQUEST_MESSAGE = "SIMPLIFY_SELECTION_REQUEST"
 export const SIMPLIFY_STATUS_MESSAGE = "SIMPLIFY_STATUS"
 
+export type SelectedTextAction = "simplify" | "shorten"
+
 export type GetSelectedTextMessage = {
   type: typeof GET_SELECTED_TEXT_MESSAGE
 }
@@ -11,10 +13,12 @@ export type ReplaceSelectedTextMessage = {
   type: typeof REPLACE_SELECTED_TEXT_MESSAGE
   selectionId: number
   text: string
+  action?: SelectedTextAction
 }
 
 export type SimplifySelectionRequestMessage = {
   type: typeof SIMPLIFY_SELECTION_REQUEST_MESSAGE
+  action?: SelectedTextAction
 }
 
 export type SimplifyStatusMessage = {
@@ -50,14 +54,18 @@ export function isReplaceSelectedTextMessage(
   return (
     isMessageOfType(message, REPLACE_SELECTED_TEXT_MESSAGE) &&
     typeof (message as { selectionId?: unknown }).selectionId === "number" &&
-    typeof (message as { text?: unknown }).text === "string"
+    typeof (message as { text?: unknown }).text === "string" &&
+    isOptionalSelectedTextAction((message as { action?: unknown }).action)
   )
 }
 
 export function isSimplifySelectionRequestMessage(
   message: unknown,
 ): message is SimplifySelectionRequestMessage {
-  return isMessageOfType(message, SIMPLIFY_SELECTION_REQUEST_MESSAGE)
+  return (
+    isMessageOfType(message, SIMPLIFY_SELECTION_REQUEST_MESSAGE) &&
+    isOptionalSelectedTextAction((message as { action?: unknown }).action)
+  )
 }
 
 export function isSimplifyStatusMessage(
@@ -80,4 +88,8 @@ function isMessageOfType(
     typeof message === "object" &&
     (message as { type?: unknown }).type === type
   )
+}
+
+function isOptionalSelectedTextAction(value: unknown): value is SelectedTextAction | undefined {
+  return value === undefined || value === "simplify" || value === "shorten"
 }
