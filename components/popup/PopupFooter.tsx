@@ -16,6 +16,7 @@ type PopupFooterProps = {
     isApplying: boolean
     controlsDisabled: boolean
     isSupported: boolean
+    applyLabel?: string
     onReset: () => void
 }
 
@@ -25,6 +26,7 @@ export function PopupFooter(
         isApplying,
         controlsDisabled,
         isSupported,
+        applyLabel,
         onReset,
     }: PopupFooterProps) {
     const StatusIcon =
@@ -77,7 +79,7 @@ export function PopupFooter(
                     ) : (
                         <Check/>
                     )}
-                    {isApplying ? "Applying…" : "Apply settings"}
+                    {isApplying ? "Applying…" : applyLabel ?? "Apply settings"}
                     {!isApplying && <ChevronRight className="ml-auto"/>}
                 </Button>
             </div>

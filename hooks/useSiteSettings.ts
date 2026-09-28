@@ -25,7 +25,10 @@ import {
 } from "@/lib/font-size"
 import {
     getStorageErrorMessage,
-    loadSiteSettings,
+    loadEffectiveSiteSettings,
+    removeSiteSettings,
+    saveGlobalPresetId,
+    saveGlobalSiteSettings,
     saveSiteSettings,
 } from "@/lib/settings-storage"
 
@@ -44,6 +47,8 @@ type TypographyUpdater = (
     typography: SiteSettings["typography"],
 ) => SiteSettings["typography"]
 
+type SettingsTarget = "site" | "global"
+
 export function useSiteSettings() {
     const [activeTabId, setActiveTabId] = useState<number | null>(null)
     const [hostname, setHostname] = useState<string | null>(null)
@@ -53,6 +58,7 @@ export function useSiteSettings() {
     const [isApplying, setIsApplying] = useState(false)
     const [isSupported, setIsSupported] = useState(false)
     const [status, setStatus] = useState<Status | null>(null)
+    const [settingsTarget, setSettingsTarget] = useState<SettingsTarget>("site")
 
     useEffect(() => {
         let isCancelled = false
@@ -87,10 +93,11 @@ export function useSiteSettings() {
                     return
                 }
 
-                const activeSettings = await loadSiteSettings(activeHostname)
+                const activeSettings = await loadEffectiveSiteSettings(activeHostname)
 
                 if (!isCancelled) {
                     setSettings(activeSettings)
+                    setSettingsTarget("site")
                     setStatus({
                         tone: "info",
                         message: "Ready to customize this site.",
@@ -217,33 +224,41 @@ export function useSiteSettings() {
         }))
     }
 
-    const resetSettings = () => {
-        setSettings(createDefaultSiteSettings())
-        setStatus({
-            tone: "info",
-            message: "Defaults restored. Press Apply to update the page.",
-        })
-    }
-
-    const applySettings = async () => {
-        if (!hostname || activeTabId === null) {
+    const persistSettings = async (
+        target: SettingsTarget,
+        nextSettings: SiteSettings,
+    ) => {
+        if (target === "site" && (!hostname || activeTabId === null)) {
             setStatus({
                 tone: "error",
-                message: "Open a regular website before applying settings.",
+                message: "Open a regular website before customizing its text.",
             })
             return
         }
 
-        const normalizedSettings = normalizeSiteSettings(settings)
+        const normalizedSettings = normalizeSiteSettings(nextSettings)
         setSettings(normalizedSettings)
+        setSettingsTarget(target)
         setIsApplying(true)
         setStatus(null)
 
         try {
-            const savedSettings = await saveSiteSettings(hostname, normalizedSettings)
+            if (target === "global") {
+                await saveGlobalSiteSettings(normalizedSettings)
+                await saveGlobalPresetId(null).catch((error) => {
+                    console.warn("[Readify] Could not clear the active global preset.", error)
+                })
+                setStatus({
+                    tone: "success",
+                    message: "Global settings saved.",
+                })
+                return
+            }
+
+            const savedSettings = await saveSiteSettings(hostname!, normalizedSettings)
 
             try {
-                await browser.tabs.sendMessage(activeTabId, {
+                await browser.tabs.sendMessage(activeTabId!, {
                     type: APPLY_SITE_SETTINGS_MESSAGE,
                     settings: savedSettings,
                 })
@@ -260,7 +275,7 @@ export function useSiteSettings() {
                 })
             }
         } catch (error) {
-            console.error("[Readify] Could not save site settings.", error)
+            console.error("[Readify] Could not save settings.", error)
             const operation = error instanceof Error && "operation" in error
                 ? (error as { operation?: "read" | "write" }).operation ?? "write"
                 : "write"
@@ -271,6 +286,86 @@ export function useSiteSettings() {
         } finally {
             setIsApplying(false)
         }
+    }
+
+    const reloadActiveSettings = async () => {
+        if (!hostname) {
+            return
+        }
+
+        try {
+            const activeSettings = await loadEffectiveSiteSettings(hostname)
+            setSettings(activeSettings)
+            setSettingsTarget("site")
+        } catch (error) {
+            setStatus({
+                tone: "error",
+                message: getStorageErrorMessage(error, "read"),
+            })
+            throw error
+        }
+    }
+
+    const clearSiteOverride = async () => {
+        if (!hostname || activeTabId === null) {
+            setStatus({
+                tone: "error",
+                message: "Open a regular website before clearing its override.",
+            })
+            return
+        }
+
+        setIsApplying(true)
+        setStatus(null)
+
+        try {
+            await removeSiteSettings(hostname)
+            const activeSettings = await loadEffectiveSiteSettings(hostname)
+            setSettings(activeSettings)
+            setSettingsTarget("site")
+
+            try {
+                await browser.tabs.sendMessage(activeTabId, {
+                    type: APPLY_SITE_SETTINGS_MESSAGE,
+                    settings: activeSettings,
+                })
+            } catch (error) {
+                console.warn("[Readify] Could not message the active page.", error)
+            }
+
+            setStatus({
+                tone: "success",
+                message: "This site is using its global/default settings again.",
+            })
+        } catch (error) {
+            console.error("[Readify] Could not clear the site override.", error)
+            const operation = error instanceof Error && "operation" in error
+                ? (error as { operation?: "read" | "write" }).operation ?? "write"
+                : "write"
+            setStatus({
+                tone: "error",
+                message: getStorageErrorMessage(error, operation),
+            })
+        } finally {
+            setIsApplying(false)
+        }
+    }
+
+    const resetSettings = async () => {
+        if (settingsTarget === "site") {
+            await clearSiteOverride()
+            return
+        }
+
+        setSettings(createDefaultSiteSettings())
+        setStatus({
+            tone: "info",
+            message: "Defaults restored. Save global settings to keep them.",
+        })
+    }
+
+    const applySettings = async () => {
+        await persistSettings(settingsTarget, settings)
     }
 
     const getPageText = async () => {
@@ -294,6 +389,7 @@ export function useSiteSettings() {
             hostname,
             faviconUrl,
             settings,
+            settingsTarget,
             isLoading,
             isApplying,
             isSupported,
@@ -313,6 +409,12 @@ export function useSiteSettings() {
                 updateLineHeight,
             },
             getPageText,
+            reloadActiveSettings,
+            clearSiteOverride,
+            applySettingsToSite: (nextSettings: SiteSettings) =>
+                persistSettings("site", nextSettings),
+            applySettingsToGlobal: (nextSettings: SiteSettings) =>
+                persistSettings("global", nextSettings),
             resetSettings,
             applySettings,
         },

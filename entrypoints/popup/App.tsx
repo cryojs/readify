@@ -101,6 +101,12 @@ function App() {
                         <PresetsSettings
                             theme={theme}
                             onThemeChange={handleThemeChange}
+                            currentSettings={state.settings}
+                            hostname={state.hostname}
+                            onReloadActiveSettings={actions.reloadActiveSettings}
+                            onClearSiteOverride={actions.clearSiteOverride}
+                            onApplySettingsToSite={actions.applySettingsToSite}
+                            onApplySettingsToGlobal={actions.applySettingsToGlobal}
                             hidePopupHeader={hidePopupHeader}
                             onHidePopupHeaderChange={handleHidePopupHeaderChange}
                         />
@@ -110,7 +116,8 @@ function App() {
                         status={state.status}
                         isApplying={state.isApplying}
                         controlsDisabled={controlsDisabled}
-                        isSupported={state.isSupported}
+                        isSupported={state.isSupported || state.settingsTarget === "global"}
+                        applyLabel={state.settingsTarget === "global" ? "Save global settings" : undefined}
                         onReset={actions.resetSettings}
                     />
                 </form>

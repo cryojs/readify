@@ -11,9 +11,11 @@ import {
   type SiteSettings,
 } from "@/lib/font-size"
 import {
+  GLOBAL_SETTINGS_EXCLUSIONS_STORAGE_KEY,
+  GLOBAL_SITE_SETTINGS_STORAGE_KEY,
   getSiteSettingsStorageKey,
   loadAppTheme,
-  loadStoredSiteSettings,
+  loadEffectiveSiteSettings,
   normalizeAppTheme,
   THEME_STORAGE_KEY,
   type AppTheme,
@@ -986,7 +988,7 @@ export default defineContentScript({
 
     const loadSettings = async () => {
       try {
-        setActiveSettings(await loadStoredSiteSettings(hostname))
+        setActiveSettings(await loadEffectiveSiteSettings(hostname))
       } catch (error) {
         console.warn("[Readify] Could not load site settings.", error)
       }
@@ -1005,9 +1007,12 @@ export default defineContentScript({
         applyFollowUpTheme()
       }
 
-      if (changes[storageKey]) {
-        const newValue = changes[storageKey].newValue
-        setActiveSettings(newValue ? normalizeSiteSettings(newValue) : null)
+      if (
+        changes[storageKey] ||
+        changes[GLOBAL_SITE_SETTINGS_STORAGE_KEY] ||
+        changes[GLOBAL_SETTINGS_EXCLUSIONS_STORAGE_KEY]
+      ) {
+        void loadSettings()
         return
       }
 

@@ -20,9 +20,19 @@ export const GROK_API_KEY_STORAGE_KEY = "readify.grokApiKey"
 export const AI_PROVIDER_STORAGE_KEY = "readify.aiProvider"
 export const THEME_STORAGE_KEY = "readify.theme"
 export const HIDE_POPUP_HEADER_STORAGE_KEY = "readify.hidePopupHeader"
+export const GLOBAL_SITE_SETTINGS_STORAGE_KEY = "readify.globalSiteSettings"
+export const GLOBAL_SETTINGS_EXCLUSIONS_STORAGE_KEY = "readify.globalSettingsExclusions"
+export const SETTINGS_PRESETS_STORAGE_KEY = "readify.settingsPresets"
+export const GLOBAL_PRESET_ID_STORAGE_KEY = "readify.globalPresetId"
 export const SIMPLIFY_RESULT_STORAGE_KEY = "readify.simplifyResult"
 
 export type AppTheme = "light" | "dark"
+
+export type SettingsPreset = {
+  id: string
+  name: string
+  settings: SiteSettings
+}
 
 export class SettingsStorageError extends Error {
   operation: StorageOperation
@@ -213,6 +223,197 @@ export async function saveHidePopupHeader(hidePopupHeader: boolean): Promise<voi
   await writeStorage({
     [HIDE_POPUP_HEADER_STORAGE_KEY]: hidePopupHeader === true,
   })
+}
+
+export async function loadGlobalSiteSettings(): Promise<SiteSettings> {
+  const values = await readStorage(GLOBAL_SITE_SETTINGS_STORAGE_KEY)
+  return Object.prototype.hasOwnProperty.call(values, GLOBAL_SITE_SETTINGS_STORAGE_KEY)
+    ? normalizeSiteSettings(values[GLOBAL_SITE_SETTINGS_STORAGE_KEY])
+    : createDefaultSiteSettings()
+}
+
+export async function hasGlobalSiteSettings(): Promise<boolean> {
+  const values = await readStorage(GLOBAL_SITE_SETTINGS_STORAGE_KEY)
+  return Object.prototype.hasOwnProperty.call(values, GLOBAL_SITE_SETTINGS_STORAGE_KEY)
+}
+
+export async function saveGlobalSiteSettings(
+  settings: SiteSettings,
+): Promise<SiteSettings> {
+  const normalizedSettings = normalizeSiteSettings(settings)
+
+  await writeStorage({
+    [GLOBAL_SITE_SETTINGS_STORAGE_KEY]: normalizedSettings,
+  })
+
+  return normalizedSettings
+}
+
+export function normalizeHostnameInput(value: string): string | null {
+  const trimmedValue = value.trim().toLowerCase()
+
+  if (!trimmedValue) {
+    return null
+  }
+
+  try {
+    const parsedUrl = new URL(
+      trimmedValue.includes("://") ? trimmedValue : `https://${trimmedValue}`,
+    )
+
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      return null
+    }
+
+    return parsedUrl.hostname || null
+  } catch {
+    return null
+  }
+}
+
+export async function loadGlobalSettingsExclusions(): Promise<string[]> {
+  const values = await readStorage(GLOBAL_SETTINGS_EXCLUSIONS_STORAGE_KEY)
+  const rawExclusions = values[GLOBAL_SETTINGS_EXCLUSIONS_STORAGE_KEY]
+
+  if (!Array.isArray(rawExclusions)) {
+    return []
+  }
+
+  return normalizeHostnameList(rawExclusions)
+}
+
+export async function saveGlobalSettingsExclusions(
+  hostnames: string[],
+): Promise<string[]> {
+  const normalizedHostnames = normalizeHostnameList(hostnames)
+
+  await writeStorage({
+    [GLOBAL_SETTINGS_EXCLUSIONS_STORAGE_KEY]: normalizedHostnames,
+  })
+
+  return normalizedHostnames
+}
+
+export async function loadEffectiveSiteSettings(
+  hostname: string,
+): Promise<SiteSettings> {
+  const siteSettings = await loadStoredSiteSettings(hostname)
+
+  if (siteSettings) {
+    return siteSettings
+  }
+
+  const exclusions = await loadGlobalSettingsExclusions()
+
+  if (exclusions.includes(hostname.toLowerCase())) {
+    return createDefaultSiteSettings()
+  }
+
+  return loadGlobalSiteSettings()
+}
+
+export async function removeSiteSettings(hostname: string): Promise<void> {
+  await removeStorage(getSiteSettingsStorageKey(hostname))
+}
+
+function normalizeHostnameList(values: unknown[]): string[] {
+  return Array.from(
+    new Set(
+      values
+        .filter((value): value is string => typeof value === "string")
+        .map(normalizeHostnameInput)
+        .filter((hostname): hostname is string => hostname !== null),
+    ),
+  )
+}
+
+export function createSettingsPreset(
+  name: string,
+  settings: SiteSettings,
+): SettingsPreset {
+  const generatedId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `preset-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+  return {
+    id: generatedId,
+    name: name.trim(),
+    settings: normalizeSiteSettings(settings),
+  }
+}
+
+export async function loadSettingsPresets(): Promise<SettingsPreset[]> {
+  const values = await readStorage(SETTINGS_PRESETS_STORAGE_KEY)
+  const rawPresets = values[SETTINGS_PRESETS_STORAGE_KEY]
+
+  if (!Array.isArray(rawPresets)) {
+    return []
+  }
+
+  return rawPresets.flatMap((value) => {
+    if (!isRecord(value)) {
+      return []
+    }
+
+    const id = typeof value.id === "string" && value.id.trim()
+      ? value.id.trim()
+      : null
+    const name = typeof value.name === "string" ? value.name.trim() : ""
+
+    if (!id || !name) {
+      return []
+    }
+
+    return [{
+      id,
+      name,
+      settings: normalizeSiteSettings(value.settings),
+    }]
+  })
+}
+
+export async function saveSettingsPresets(
+  presets: SettingsPreset[],
+): Promise<SettingsPreset[]> {
+  const normalizedPresets = presets.flatMap((preset) => {
+    const name = preset.name.trim()
+
+    if (!preset.id || !name) {
+      return []
+    }
+
+    return [{
+      id: preset.id,
+      name,
+      settings: normalizeSiteSettings(preset.settings),
+    }]
+  })
+
+  await writeStorage({
+    [SETTINGS_PRESETS_STORAGE_KEY]: normalizedPresets,
+  })
+
+  return normalizedPresets
+}
+
+export async function loadGlobalPresetId(): Promise<string | null> {
+  const values = await readStorage(GLOBAL_PRESET_ID_STORAGE_KEY)
+  const presetId = values[GLOBAL_PRESET_ID_STORAGE_KEY]
+
+  return typeof presetId === "string" && presetId.trim()
+    ? presetId.trim()
+    : null
+}
+
+export async function saveGlobalPresetId(presetId: string | null): Promise<void> {
+  if (presetId) {
+    await writeStorage({
+      [GLOBAL_PRESET_ID_STORAGE_KEY]: presetId.trim(),
+    })
+    return
+  }
+
+  await removeStorage(GLOBAL_PRESET_ID_STORAGE_KEY)
 }
 
 export async function loadAiApiKey(provider: AiProvider): Promise<string> {
