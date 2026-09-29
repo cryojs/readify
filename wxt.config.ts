@@ -6,7 +6,7 @@ export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   manifest: {
     name: "Readify",
-    description: "Customize your reading experience on any website",
+    description: "Customize text size, typography, and AI reading tools on any website",
     permissions: ["storage", "tabs", "contextMenus"],
     commands: {
       "simplify-selection": {
@@ -36,6 +36,14 @@ export default defineConfig({
       "https://api.groq.com/*",
       "https://api.x.ai/*",
     ],
+    browser_specific_settings: {
+      gecko: {
+        id: "readify@jasonsun.dev",
+        data_collection_permissions: {
+          required: ["websiteContent", "authenticationInfo"],
+        },
+      },
+    },
     web_accessible_resources: [
       {
         resources: ["assets/*.woff2", "assets/*.woff"],
