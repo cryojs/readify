@@ -34,6 +34,20 @@ export type SettingsPreset = {
   settings: SiteSettings
 }
 
+export type SettingsBackup = {
+  format: "readify-settings-backup"
+  version: 1
+  exportedAt: string
+  globalSettings: SiteSettings
+  globalSettingsExclusions: string[]
+  globalPresetId: string | null
+  presets: SettingsPreset[]
+  siteSettings: Record<string, SiteSettings>
+  theme: AppTheme
+  hidePopupHeader: boolean
+  aiProvider: AiProvider
+}
+
 export class SettingsStorageError extends Error {
   operation: StorageOperation
   causeValue: unknown
@@ -62,7 +76,9 @@ function getStorageArea() {
   return browser.storage.local
 }
 
-async function readStorage(keys: string | string[]): Promise<Record<string, unknown>> {
+async function readStorage(
+  keys: string | string[] | null,
+): Promise<Record<string, unknown>> {
   try {
     return (await getStorageArea().get(keys)) as Record<string, unknown>
   } catch (error) {
@@ -414,6 +430,187 @@ export async function saveGlobalPresetId(presetId: string | null): Promise<void>
   }
 
   await removeStorage(GLOBAL_PRESET_ID_STORAGE_KEY)
+}
+
+export async function exportSettingsBackup(): Promise<SettingsBackup> {
+  const [
+    globalSettings,
+    globalSettingsExclusions,
+    globalPresetId,
+    presets,
+    theme,
+    hidePopupHeader,
+    aiProvider,
+    storedValues,
+  ] = await Promise.all([
+    loadGlobalSiteSettings(),
+    loadGlobalSettingsExclusions(),
+    loadGlobalPresetId(),
+    loadSettingsPresets(),
+    loadAppTheme(),
+    loadHidePopupHeader(),
+    loadAiProvider(),
+    readStorage(null),
+  ])
+
+  const siteSettings = loadSiteSettingsFromStorageValues(storedValues)
+
+  return {
+    format: "readify-settings-backup",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    globalSettings,
+    globalSettingsExclusions,
+    globalPresetId: presets.some((preset) => preset.id === globalPresetId)
+      ? globalPresetId
+      : null,
+    presets,
+    siteSettings,
+    theme,
+    hidePopupHeader,
+    aiProvider,
+  }
+}
+
+export async function importSettingsBackup(value: unknown): Promise<SettingsBackup> {
+  const backup = normalizeSettingsBackup(value)
+  const storedValues = await readStorage(null)
+  const existingSiteKeys = Object.keys(storedValues).filter((key) =>
+    key.startsWith(SITE_SETTINGS_STORAGE_KEY_PREFIX),
+  )
+  const importedSiteKeys = Object.keys(backup.siteSettings).map(getSiteSettingsStorageKey)
+  const valuesToWrite: Record<string, unknown> = {
+    [GLOBAL_SITE_SETTINGS_STORAGE_KEY]: backup.globalSettings,
+    [GLOBAL_SETTINGS_EXCLUSIONS_STORAGE_KEY]: backup.globalSettingsExclusions,
+    [SETTINGS_PRESETS_STORAGE_KEY]: backup.presets,
+    [THEME_STORAGE_KEY]: backup.theme,
+    [HIDE_POPUP_HEADER_STORAGE_KEY]: backup.hidePopupHeader,
+    [AI_PROVIDER_STORAGE_KEY]: backup.aiProvider,
+  }
+
+  for (const [hostname, settings] of Object.entries(backup.siteSettings)) {
+    valuesToWrite[getSiteSettingsStorageKey(hostname)] = settings
+  }
+
+  await writeStorage(valuesToWrite)
+
+  const siteKeysToRemove = existingSiteKeys.filter(
+    (key) => !importedSiteKeys.includes(key),
+  )
+
+  if (siteKeysToRemove.length > 0) {
+    await removeStorage(siteKeysToRemove)
+  }
+
+  if (backup.globalPresetId) {
+    await saveGlobalPresetId(backup.globalPresetId)
+  } else {
+    await saveGlobalPresetId(null)
+  }
+
+  return backup
+}
+
+function normalizeSettingsBackup(value: unknown): SettingsBackup {
+  if (!isRecord(value) || value.format !== "readify-settings-backup" || value.version !== 1) {
+    throw new Error("This is not a valid Readify settings backup.")
+  }
+
+  if (!Array.isArray(value.presets) || !Array.isArray(value.globalSettingsExclusions)) {
+    throw new Error("The Readify backup is missing required settings.")
+  }
+
+  if (!isRecord(value.siteSettings)) {
+    throw new Error("The Readify backup has invalid website settings.")
+  }
+
+  const presets = normalizeSettingsPresets(value.presets)
+  const siteSettings: Record<string, SiteSettings> = {}
+
+  for (const [rawHostname, rawSettings] of Object.entries(value.siteSettings)) {
+    const hostname = normalizeHostnameInput(rawHostname)
+
+    if (hostname) {
+      siteSettings[hostname] = normalizeSiteSettings(rawSettings)
+    }
+  }
+
+  const rawGlobalPresetId = typeof value.globalPresetId === "string"
+    ? value.globalPresetId.trim()
+    : ""
+
+  return {
+    format: "readify-settings-backup",
+    version: 1,
+    exportedAt: typeof value.exportedAt === "string" ? value.exportedAt : new Date().toISOString(),
+    globalSettings: normalizeSiteSettings(value.globalSettings),
+    globalSettingsExclusions: normalizeHostnameList(value.globalSettingsExclusions),
+    globalPresetId: presets.some((preset) => preset.id === rawGlobalPresetId)
+      ? rawGlobalPresetId
+      : null,
+    presets,
+    siteSettings,
+    theme: normalizeAppTheme(value.theme),
+    hidePopupHeader: value.hidePopupHeader === true,
+    aiProvider: normalizeAiProvider(value.aiProvider),
+  }
+}
+
+function normalizeSettingsPresets(value: unknown): SettingsPreset[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const seenIds = new Set<string>()
+
+  return value.flatMap((candidate) => {
+    if (!isRecord(candidate)) {
+      return []
+    }
+
+    const id = typeof candidate.id === "string" && candidate.id.trim()
+      ? candidate.id.trim()
+      : null
+    const name = typeof candidate.name === "string" ? candidate.name.trim() : ""
+
+    if (!id || !name || seenIds.has(id)) {
+      return []
+    }
+
+    seenIds.add(id)
+
+    return [{
+      id,
+      name,
+      settings: normalizeSiteSettings(candidate.settings),
+    }]
+  })
+}
+
+function loadSiteSettingsFromStorageValues(
+  values: Record<string, unknown>,
+): Record<string, SiteSettings> {
+  const siteSettings: Record<string, SiteSettings> = {}
+
+  for (const [storageKey, rawSettings] of Object.entries(values)) {
+    if (!storageKey.startsWith(SITE_SETTINGS_STORAGE_KEY_PREFIX)) {
+      continue
+    }
+
+    try {
+      const hostname = normalizeHostnameInput(
+        decodeURIComponent(storageKey.slice(SITE_SETTINGS_STORAGE_KEY_PREFIX.length)),
+      )
+
+      if (hostname) {
+        siteSettings[hostname] = normalizeSiteSettings(rawSettings)
+      }
+    } catch {
+      // Ignore malformed site-settings keys in an export.
+    }
+  }
+
+  return siteSettings
 }
 
 export async function loadAiApiKey(provider: AiProvider): Promise<string> {

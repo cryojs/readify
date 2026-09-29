@@ -19,14 +19,16 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import {TabsContent} from "@/components/ui/tabs"
-import {useEffect, useState} from "react"
+import {useEffect, useRef, useState, type ChangeEvent} from "react"
 import {
     Check,
+    Download,
     Globe2,
     Play,
     Plus,
     Save,
     Trash2,
+    Upload,
 } from "lucide-react"
 
 import {
@@ -38,7 +40,9 @@ import {
 import {type SiteSettings} from "@/lib/font-size"
 import {
     createSettingsPreset,
+    exportSettingsBackup,
     GLOBAL_PRESET_ID_STORAGE_KEY,
+    importSettingsBackup,
     loadGlobalSettingsExclusions,
     loadGlobalPresetId,
     loadGlobalSiteSettings,
@@ -97,6 +101,10 @@ export function PresetsSettings({
     const [isExclusionsOpen, setIsExclusionsOpen] = useState(false)
     const [newExcludedHostname, setNewExcludedHostname] = useState("")
     const [exclusionError, setExclusionError] = useState<string | null>(null)
+    const [backupStatus, setBackupStatus] = useState<string | null>(null)
+    const [backupError, setBackupError] = useState<string | null>(null)
+    const [isBackupBusy, setIsBackupBusy] = useState(false)
+    const importInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         let isCancelled = false
@@ -316,6 +324,83 @@ export function PresetsSettings({
         } catch (error) {
             console.warn("[Readify] Could not remove the excluded website.", error)
             setExclusionError("Could not remove that website.")
+        }
+    }
+
+    const handleExportSettings = async () => {
+        setBackupStatus(null)
+        setBackupError(null)
+        setIsBackupBusy(true)
+
+        try {
+            const backup = await exportSettingsBackup()
+            const blob = new Blob([JSON.stringify(backup, null, 2)], {
+                type: "application/json",
+            })
+            const downloadUrl = URL.createObjectURL(blob)
+            const downloadLink = document.createElement("a")
+
+            downloadLink.href = downloadUrl
+            downloadLink.download = `readify-settings-${new Date().toISOString().slice(0, 10)}.json`
+            downloadLink.style.display = "none"
+            document.body.appendChild(downloadLink)
+            downloadLink.click()
+            downloadLink.remove()
+            window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0)
+            setBackupStatus("Settings exported. API keys were not included.")
+        } catch (error) {
+            console.warn("[Readify] Could not export settings.", error)
+            setBackupError("Could not export settings. Please try again.")
+        } finally {
+            setIsBackupBusy(false)
+        }
+    }
+
+    const handleImportSettings = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        event.target.value = ""
+
+        if (!file) {
+            return
+        }
+
+        setBackupStatus(null)
+        setBackupError(null)
+        setIsBackupBusy(true)
+
+        try {
+            const parsedValue: unknown = JSON.parse(await file.text())
+
+            if (!window.confirm("Import this backup? It will replace saved Readify presets, site settings, appearance, and global settings. API keys will remain unchanged.")) {
+                return
+            }
+
+            const backup = await importSettingsBackup(parsedValue)
+            setPresets(backup.presets)
+            setGlobalPresetId(backup.globalPresetId)
+            setExcludedHostnames(backup.globalSettingsExclusions)
+            setSelectedProvider(backup.aiProvider)
+            onThemeChange(backup.theme)
+            onHidePopupHeaderChange(backup.hidePopupHeader)
+
+            try {
+                await onReloadActiveSettings()
+            } catch (error) {
+                console.warn("[Readify] Imported settings, but could not reload the active site.", error)
+            }
+
+            setBackupStatus("Settings imported. API keys were left unchanged.")
+        } catch (error) {
+            console.warn("[Readify] Could not import settings.", error)
+            setBackupError(
+                error instanceof SyntaxError
+                    ? "That file is not valid JSON."
+                    : error instanceof Error
+                        ? error.message
+                        : "Could not import settings. Please choose a Readify backup.",
+            )
+        } finally {
+            setIsBackupBusy(false)
         }
     }
 
@@ -615,6 +700,57 @@ export function PresetsSettings({
                             onCheckedChange={onHidePopupHeaderChange}
                         />
                     </div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardContent className="space-y-3">
+                    <div>
+                        <Label className="text-xs">Backup settings</Label>
+                        <p className="text-muted-foreground text-[11px] leading-relaxed">
+                            Export or import presets, website settings, global settings, exclusions, and appearance preferences. API keys are never included.
+                        </p>
+                    </div>
+                    <div className="flex gap-1.5">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            disabled={isBackupBusy}
+                            onClick={() => void handleExportSettings()}
+                        >
+                            <Download/>
+                            Export
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            disabled={isBackupBusy}
+                            onClick={() => importInputRef.current?.click()}
+                        >
+                            <Upload/>
+                            Import
+                        </Button>
+                        <input
+                            ref={importInputRef}
+                            type="file"
+                            accept="application/json,.json"
+                            className="hidden"
+                            onChange={(event) => void handleImportSettings(event)}
+                        />
+                    </div>
+                    {backupStatus && (
+                        <p className="text-muted-foreground text-[11px]" role="status">
+                            {backupStatus}
+                        </p>
+                    )}
+                    {backupError && (
+                        <p className="text-destructive text-[11px]" role="alert">
+                            {backupError}
+                        </p>
+                    )}
                 </CardContent>
             </Card>
             <Dialog
