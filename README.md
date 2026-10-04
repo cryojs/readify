@@ -4,7 +4,7 @@ Readify lets you tailor the reading experience on the websites you use. Adjust t
 
 ## Showcase
 
-![](public/readme/showcase.mp4)
+https://github.com/user-attachments/assets/705dc3bc-b4ec-494c-b9f0-a55d58ce84a8
 
 ## Features
 
