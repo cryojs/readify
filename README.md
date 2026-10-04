@@ -1,4 +1,4 @@
-# Readify:
+# Readify
 
 Readify lets you tailor the reading experience on the websites you use. Adjust text size and typography per site or globally, save reusable presets, and optionally use your own AI provider key to work with page or selected text.
 
