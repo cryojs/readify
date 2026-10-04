@@ -1,6 +1,13 @@
-# Readify
+# Readify:
 
 Readify lets you tailor the reading experience on the websites you use. Adjust text size and typography per site or globally, save reusable presets, and optionally use your own AI provider key to work with page or selected text.
+
+<video controls preload="metadata" width="100%">
+  <source src="public/readme/showcase.mp4" type="video/mp4">
+  Your browser does not support embedded video.
+</video>
+
+[Watch or the showcase video](public/readme/showcase.mp4)
 
 ## Features
 
@@ -12,7 +19,7 @@ Readify lets you tailor the reading experience on the websites you use. Adjust t
 - Simplify or shorten selected text, or ask a follow-up question about a selection, from the context menu or keyboard shortcuts.
 - Choose a light or dark interface theme and export/import settings without exporting API keys.
 
-## Screenshots
+## Gallery
 
 ![Readify reading settings](public/readme/wiki-base.png)
 
@@ -58,10 +65,5 @@ For Firefox, run `npm run build:firefox`, open `about:debugging#/runtime/this-fi
 
 ## Store links
 
-- Chrome Web Store: Coming soon
-- Microsoft Edge Add-ons: Coming soon
-- Firefox Add-ons: Coming soon
-
-## License
-
-No `LICENSE` file is currently included in this repository. Licensing has not been specified here.
+- [Chrome Web Store](https://chromewebstore.google.com/detail/readify/cpdfcocmpacdfogkbgjggdokppbffafb)
+- [Firefox Add-ons](https://addons.mozilla.org/en-CA/firefox/addon/readify-web/)

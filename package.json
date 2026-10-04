@@ -2,6 +2,7 @@
   "name": "readify",
   "description": "Customize text size, typography, and AI reading tools on any website",
   "private": true,
+  "license": "MIT",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
